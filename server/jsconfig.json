@@ -1,10 +1,6 @@
 {
   "compilerOptions": {
     "checkJs": true,
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./src/*"]
-    },
     "resolveJsonModule": true,
     "moduleResolution": "node",
     "target": "ESNext",
