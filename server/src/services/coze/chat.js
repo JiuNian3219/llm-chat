@@ -81,4 +81,15 @@ export async function streamChat(content, callbacks, conversationId, botId) {
   }
 }
 
-// export async function 
+/**
+ * 取消聊天请求
+ * @param {string} chatId 
+ * @param {string} conversationId 
+ */
+export async function cancelChat(chatId, conversationId) {
+  const chatResponse = await client.chat.cancel(
+    conversationId,
+    chatId,
+  )
+  return chatResponse;
+}

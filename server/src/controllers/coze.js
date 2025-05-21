@@ -1,5 +1,5 @@
-import { nonStreamChat, streamChat } from "../services/coze/chat.js";
-import { respondWithSuccess } from "../utils/responseFormatter.js";
+import { cancelChat, nonStreamChat, streamChat } from "../services/coze/chat.js";
+import { respondWithError, respondWithSuccess } from "../utils/responseFormatter.js";
 
 /**
  * 处理非流式聊天请求
@@ -40,7 +40,7 @@ export async function streamChatHandler(req, res) {
     {
       onStart: (data) => {
         res.write(
-          `data: ${JSON.stringify({ type: "start", conversationId: data.conversationId, messageId: data.id })}\n\n`
+          `data: ${JSON.stringify({ type: "start", conversationId: data.conversation_id, chatId: data.id })}\n\n`
         );
       },
       onMessage: (data) => {
@@ -68,4 +68,24 @@ export async function streamChatHandler(req, res) {
     botId
   );
   res.end();
+}
+
+/**
+ * 处理取消聊天请求
+ * @type {import('express').RequestHandler}
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export async function cancelChatHandler(req, res) {
+  const { chatId, conversationId } = req.body;
+  if (!chatId || !conversationId) {
+    respondWithError(res, '缺少参数');
+    return;
+  }
+  const result = await cancelChat(chatId, conversationId);
+  if (result.status === 'canceled') {
+    respondWithSuccess(res, result);
+  } else {
+    respondWithError(res, result?.last_error?.msg || '取消失败，请稍后再试');
+  }
 }
