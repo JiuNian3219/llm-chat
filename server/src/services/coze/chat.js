@@ -25,7 +25,6 @@ export async function nonStreamChat(content, conversationId, botId) {
   if (chatResponse.chat.status === ChatStatus.COMPLETED) {
     // 筛选出 answer 和 follow_up 类型的消息
     for (const message of chatResponse.messages || []) {
-      console.log(message.type);
       if (["answer", "follow_up"].includes(message.type)) {
         messages.push(message);
       }
