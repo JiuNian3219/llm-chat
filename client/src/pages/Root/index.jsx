@@ -21,6 +21,10 @@ const Root = () => {
             siderBg: "white",
             footerPadding: "5px",
           },
+          Typography: {
+            titleMarginBottom: "0px",
+            titleMarginTop: "0px"
+          }
         },
       }}
     >
@@ -32,7 +36,9 @@ const Root = () => {
           <Flex
             justify="center"
             align="center"
-            className={styles["logo-style"]}
+            style={{
+            }}
+            className={styles["logo-flex-style"]}
           >
             <MessageTwoTone className={styles["logo-style"]} />
             <Title
