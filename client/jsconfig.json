@@ -11,5 +11,5 @@
     "target": "ESNext",
     "module": "ESNext"
   },
-  "include": ["src/**/*", "base/**/*", "domain/**/*"]
+  "include": ["src/**/*", "base/**/*", "domain/**/*", "src/types/*.d.ts"]
 }
