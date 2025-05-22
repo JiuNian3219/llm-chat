@@ -1,7 +1,6 @@
 import axios from "axios";
 
 const instance = axios.create({
-  baseURL: "http://localhost:",
   timeout: 20 * 1000,
   withCredentials: true,
 });
@@ -22,20 +21,10 @@ instance.interceptors.request.use((config) => {
   return config;
 });
 
-// 提取请求方法和url
-instance.interceptors.request.use((config) => {
-  const urlConfig = config.url.split(/\s+/);
-  if (urlConfig.length > 1) {
-    config.method = urlConfig[0].toLowerCase();
-    config.url = urlConfig[1];
-  }
-  return config;
-});
-
 instance.interceptors.response.use(
   (response) => {
-    const { data, msg, success } = response.data;
-    if (success) {
+    const { data, msg, code } = response.data;
+    if (code === 200) {
       return data;
     }
     return Promise.reject();

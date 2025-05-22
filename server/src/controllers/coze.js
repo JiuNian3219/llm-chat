@@ -77,12 +77,14 @@ export async function streamChatHandler(req, res) {
  * @param {import('express').Response} res
  */
 export async function cancelChatHandler(req, res) {
+  console.log('取消聊天请求:', req.body);
   const { chatId, conversationId } = req.body;
   if (!chatId || !conversationId) {
     respondWithError(res, '缺少参数');
     return;
   }
   const result = await cancelChat(chatId, conversationId);
+  console.log('取消聊天结果:', result);
   if (result.status === 'canceled') {
     respondWithSuccess(res, result);
   } else {
