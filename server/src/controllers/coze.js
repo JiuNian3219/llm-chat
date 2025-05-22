@@ -44,9 +44,16 @@ export async function streamChatHandler(req, res) {
         );
       },
       onMessage: (data) => {
-        res.write(
-          `data: ${JSON.stringify({ type: "message", content: data.content })}\n\n`
-        );
+        let reasoningContent = data.reasoning_content;
+        if (reasoningContent) {
+          res.write(
+            `data: ${JSON.stringify({ type: "reasoning", content: reasoningContent })}\n\n`
+          );
+        } else {
+          res.write(
+            `data: ${JSON.stringify({ type: "message", content: data.content })}\n\n`
+          );
+        }
       },
       onCompleted: (data) => {
         res.write(
