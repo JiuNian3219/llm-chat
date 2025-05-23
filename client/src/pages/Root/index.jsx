@@ -12,6 +12,7 @@ const Root = () => {
       theme={{
         token: {
           colorPrimary: "#1890ff",
+          fontSize: 16,
         },
         components: {
           Layout: {
@@ -21,8 +22,8 @@ const Root = () => {
           },
           Typography: {
             titleMarginBottom: "0px",
-            titleMarginTop: "0px"
-          }
+            titleMarginTop: "0px",
+          },
         },
       }}
     >
@@ -47,7 +48,12 @@ const Root = () => {
         </Sider>
         <Layout>
           <Header className={styles["header"]}>
-            <Title level={4} className={styles["header-title"]}>关闭搜狗输入法Ctrl+Space快捷键</Title>
+            <Title
+              level={4}
+              className={styles["header-title"]}
+            >
+              关闭搜狗输入法Ctrl+Space快捷键
+            </Title>
           </Header>
           <Content>
             <Outlet />
