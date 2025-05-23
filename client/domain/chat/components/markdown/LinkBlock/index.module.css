@@ -1,0 +1,11 @@
+.link {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: flex-start;
+}
+
+.link-icon {
+  font-size: 10px;
+  margin-left: 4px;
+  margin-top: 6px;
+}
