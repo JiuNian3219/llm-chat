@@ -11,10 +11,10 @@ import styles from "./index.module.css";
  */
 const DotPulseLoader = ({ color, size, speed, className }) => {
   const dotStyle = {
-    width: `${size == undefined ? 8 : size}px`,
-    height: `${size == undefined ? 8 : size}px`,
+    width: `${size === undefined ? 8 : size}px`,
+    height: `${size === undefined ? 8 : size}px`,
     backgroundColor: color || "#1677ff",
-    animationDuration: `${1.4 / (speed == undefined ? 1.2 : speed)}s`,
+    animationDuration: `${1.4 / (speed === undefined ? 1.2 : speed)}s`,
   };
 
   return (
