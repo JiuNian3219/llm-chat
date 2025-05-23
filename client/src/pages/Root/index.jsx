@@ -2,7 +2,7 @@ import { ConfigProvider, Flex, Layout, Typography } from "antd";
 import { MessageTwoTone } from "@ant-design/icons";
 import styles from "./index.module.css";
 import { Outlet } from "react-router-dom";
-const { Header, Content, Footer, Sider } = Layout;
+const { Header, Content, Sider } = Layout;
 
 const { Title } = Typography;
 
@@ -17,9 +17,7 @@ const Root = () => {
           Layout: {
             bodyBg: "white",
             headerBg: "white",
-            footerBg: "white",
             siderBg: "white",
-            footerPadding: "5px",
           },
           Typography: {
             titleMarginBottom: "0px",
@@ -36,8 +34,6 @@ const Root = () => {
           <Flex
             justify="center"
             align="center"
-            style={{
-            }}
             className={styles["logo-flex-style"]}
           >
             <MessageTwoTone className={styles["logo-style"]} />
@@ -50,15 +46,12 @@ const Root = () => {
           </Flex>
         </Sider>
         <Layout>
-          <Header>
+          <Header className={styles["header-style"]}>
             <p style={{ textAlign: "center" }}>Header</p>
           </Header>
           <Content>
             <Outlet />
           </Content>
-          <Footer className={styles["footer-style"]}>
-            LLM Chat 也可能会犯错，请核查重要信息。
-          </Footer>
         </Layout>
       </Layout>
     </ConfigProvider>
