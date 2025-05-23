@@ -12,10 +12,12 @@ import { LoadingOutlined } from "@ant-design/icons";
  * @param {"circle" | "default" | "round"} [props.shape] - 图标类型
  * @param {boolean} [props.loading] - 是否加载中
  * @param {import("react").MouseEventHandler} [props.onClick] - 点击事件
+ * @param {import("react").CSSProperties} [props.style] - 组件样式
+ * @param {string} [props.className] - 组件类名
  * @param {any} [props.rest] - 其他属性
  * @returns
  */
-const IconButton = ({ icon, shape, size, type, loading, onClick, ...props }) => {
+const IconButton = ({ icon, shape, size, type, loading, onClick, style, className,...props }) => {
   return (
     <Button
       shape={shape ||"circle"}
@@ -24,8 +26,9 @@ const IconButton = ({ icon, shape, size, type, loading, onClick, ...props }) => 
         fontSize: getIconSize(size),
         opacity: loading ? 0.5 : 1,
         cursor: loading ? "default" : "pointer",
+        ...style
       }}
-  
+      className={className}
       onClick={(e) => {
         // 如果正在加载，则阻止点击事件
         if (loading) {
