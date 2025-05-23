@@ -26,7 +26,6 @@ const MultilineInput = ({
    * 判断是否为受控组件
    */
   const isControlled = value !== undefined && onChange !== undefined;
-  console.log("isControlled", isControlled);
 
   /**
    * 处理输入框值变化
