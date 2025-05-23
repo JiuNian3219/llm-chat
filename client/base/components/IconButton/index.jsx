@@ -14,10 +14,9 @@ import { LoadingOutlined } from "@ant-design/icons";
  * @param {import("react").MouseEventHandler} [props.onClick] - 点击事件
  * @param {import("react").CSSProperties} [props.style] - 组件样式
  * @param {string} [props.className] - 组件类名
- * @param {any} [props.rest] - 其他属性
  * @returns
  */
-const IconButton = ({ icon, shape, size, type, loading, onClick, style, className,...props }) => {
+const IconButton = ({ icon, shape, size, type, loading, onClick, style, className, ...props }) => {
   return (
     <Button
       shape={shape ||"circle"}
