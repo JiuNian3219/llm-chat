@@ -1,0 +1,22 @@
+.multiline-input {
+  width: 100%;
+  overflow: "auto";
+  resize: none;
+  font-size: 16px;
+  word-break: break-all;
+  outline: none;
+  background-color: rgba(226, 33, 33, 0);
+  padding: 0;
+  border: 0;
+}
+
+.multiline-input:focus {
+  outline: none;
+  box-shadow: none;
+  border: 0;
+}
+
+.multiline-input-style:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
