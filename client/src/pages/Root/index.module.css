@@ -1,17 +1,17 @@
 
-.logo-flex-style {
+.logo-flex {
   padding: 10px 0;
 }
 
-.logo-style {
+.logo {
   font-size: 40px;
 }
 
-.logo-title-style {
+.logo-title {
   padding: 0 10px;
 }
 
-.sider-style {
+.sider {
   position: sticky;
   top: 0;
   bottom: 0;
@@ -19,7 +19,15 @@
   border-right: 1px solid #ebebeb;
 }
 
-.header-style {
+.header {
   position: sticky;
   top: 0;
+  display: flex;
+  justify-self: center;
+  align-items: center;
+}
+
+.header-title {
+  text-align: center;
+  margin: 0 auto;
 }

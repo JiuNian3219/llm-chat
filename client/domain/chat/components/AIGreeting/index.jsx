@@ -20,15 +20,15 @@ const AIGreeting = ({ title, description }) => {
       gap="10px"
     >
       <Flex>
-        <MessageTwoTone className={styles["logo-style"]} />
+        <MessageTwoTone className={styles["logo"]} />
         <Title
           level={3}
-          className={styles["title-style"]}
+          className={styles["title"]}
         >
           {title}
         </Title>
       </Flex>
-      <Paragraph className={styles["description-style"]}>
+      <Paragraph className={styles["description"]}>
         {description}
       </Paragraph>
     </Flex>

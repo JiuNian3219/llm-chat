@@ -11,7 +11,7 @@ import styles from "./index.module.css";
 const AIFooterTip = ({ children, style, className }) => {
   return (
     <div
-      className={`${styles["footer-style"]} ${className || ""}`}
+      className={`${styles["footer"]} ${className || ""}`}
       style={style}
     >
       {children || "LLM Chat 也可能会犯错，请核查重要信息。"}
