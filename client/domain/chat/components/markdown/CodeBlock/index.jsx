@@ -16,7 +16,7 @@ const CodeBlock = ({ children, className, ...props }) => {
   const childrenString = String(children).replace(/\n$/, "");
 
   if (!match) {
-    return <code className={styles["inline-code"]} {...props}>{childrenString}</code>;
+    return <code className={styles["inline-code"]} {...props}>{children}</code>;
   }
   return (
     <div className={styles["code-container"]}>
@@ -28,6 +28,7 @@ const CodeBlock = ({ children, className, ...props }) => {
         className={`${className} ${styles["code-block"]}`}
         customStyle={{
           padding: "16px",
+          backgroundColor: "transparent",
         }}
         style={atomOneLight}
         language={language}
