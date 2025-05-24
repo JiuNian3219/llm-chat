@@ -1,0 +1,31 @@
+.table-container {
+  width: fit-content;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+
+.markdown-table {
+  border-collapse: collapse;
+  width: 100%;
+  border: 1px solid #e0e0e0;
+}
+
+.table-header {
+  background-color: #f5f5f5;
+}
+
+.table-header-cell {
+  padding: 6px 8px;
+  text-align: left;
+  border: 1px solid #e0e0e0;
+  font-weight: 600;
+}
+
+.table-row:nth-child(even) {
+  background-color: #fafafa;
+}
+
+.table-cell {
+  padding: 6px 8px;
+  border: 1px solid #e0e0e0;
+}
