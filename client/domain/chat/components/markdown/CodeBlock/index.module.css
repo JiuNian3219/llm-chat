@@ -1,0 +1,48 @@
+.inline-code {
+  border-radius: 4px;
+  background-color: #f0f0f0;
+  padding: 3px 6px;
+  margin: 0px 3px;
+  font-weight: bold;
+  /* 使用圆润的字体 */
+  font-family:
+    "Menlo", "Monaco", "Consolas", "Courier New", monospace, "Microsoft YaHei";
+  color: #333; /* 颜色不要太黑，减轻视觉冲击 */
+  /* 开启字体平滑 */
+  -webkit-font-smoothing: antialiased;
+  /* 开启字体平滑 */
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 0.95rem;
+}
+
+.inline-code:before {
+  content: none;
+}
+
+.inline-code:after {
+  content: none;
+}
+
+.code-container {
+  border-radius: 8px;
+  margin: 8px 0px;
+}
+
+.code-header {
+  border: 1px solid #ccc;
+  border-bottom: none;
+  background-color: #f5f5f5;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  padding: 8px;
+  padding-left: 16px;
+  padding-right: 16px;
+  color: #525252;
+}
+
+.code-block {
+  border: 1px solid #ccc;
+  border-top: none;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
