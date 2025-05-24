@@ -1,15 +1,10 @@
 import IconButton from "@/base/components/IconButton";
 import styles from "./index.module.css";
-import {
-  CopyOutlined,
-  EditOutlined,
-  CheckOutlined,
-  CloseOutlined,
-} from "@ant-design/icons";
-import { App, Button, Flex } from "antd";
-import { copyText } from "@/domain/chat/utils";
-import { useState, useEffect } from "react";
+import { EditOutlined } from "@ant-design/icons";
+import { Button, Flex } from "antd";
+import { useState } from "react";
 import TextArea from "antd/es/input/TextArea";
+import useCopyToClipboard from "@/domain/chat/hooks/useCopyToClipboard";
 
 /**
  * 用户消息组件 - 显示在右侧
@@ -20,51 +15,17 @@ import TextArea from "antd/es/input/TextArea";
  * @returns
  */
 const UserMessage = ({ message, className, style }) => {
-  // 复制状态，null表示未复制，'success'表示复制成功，'error'表示复制失败
-  const [copyStatus, setCopyStatus] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState(message);
-  const { message: messageApi } = App.useApp();
-
-  // 当复制状态发生变化时，设置定时器，1秒后清除复制状态
-  useEffect(() => {
-    let timer;
-    if (copyStatus) {
-      timer = setTimeout(() => {
-        setCopyStatus(null);
-      }, 1000);
-    }
-
-    return () => {
-      if (timer) clearTimeout(timer);
-    };
-  }, [copyStatus]);
+  const { copyText, getCopyIcon } = useCopyToClipboard();
 
   /**
    * 复制消息到剪贴板
    */
-  const copyMessage = async () => {
-    // 如果没有消息或者复制状态不为null，则不执行复制操作
-    if (!message || copyStatus != null) return;
-    const result = await copyText(message, messageApi);
-    if (result) {
-      setCopyStatus("success");
-    } else {
-      setCopyStatus("error");
-    }
-  };
-
-  /**
-   * 获取复制图标，根据复制状态返回不同的图标
-   */
-  const getCopyIcon = () => {
-    if (copyStatus === "success") {
-      return <CheckOutlined className={styles["copy-success-icon"]} />;
-    } else if (copyStatus === "error") {
-      return <CloseOutlined className={styles["copy-error-icon"]} />;
-    } else {
-      return <CopyOutlined className={styles["copy-icon"]} />;
-    }
+  const handleCopyMessage = async () => {
+    // 如果没有消息则不执行复制操作
+    if (!message) return;
+    await copyText(message);
   };
 
   /**
@@ -114,7 +75,12 @@ const UserMessage = ({ message, className, style }) => {
       >
         {isEditing ? (
           <>
-            <Button type="text" onClick={toggleEdit}>取消</Button>
+            <Button
+              type="text"
+              onClick={toggleEdit}
+            >
+              取消
+            </Button>
             <Button type="primary">发送</Button>
           </>
         ) : (
@@ -124,7 +90,7 @@ const UserMessage = ({ message, className, style }) => {
               icon={getCopyIcon()}
               shape="default"
               size="small"
-              onClick={copyMessage}
+              onClick={handleCopyMessage}
               className={styles["copy-button"]}
             />
             <IconButton
