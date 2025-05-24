@@ -1,4 +1,8 @@
 /* 确保Github的- []  左侧的-不会越出box */
+.markdown-container {
+  word-break: break-all;
+}
+
 .markdown-container ul,
 .markdown-container ol {
   padding-left: 2em;
