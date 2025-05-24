@@ -15,18 +15,7 @@
 .copy-button {
   padding: 8px;
   transition: all 0.3s;
-}
-
-.copy-icon {
   color: #909090;
-}
-
-.copy-success-icon {
-  color: #52c41a;
-}
-
-.copy-error-icon {
-  color: #ff4d4f;
 }
 
 .edit-button {
