@@ -4,6 +4,10 @@
   align-items: flex-start;
 }
 
+.link:hover {
+  text-decoration: underline;
+}
+
 .link-icon {
   font-size: 10px;
   margin-left: 4px;
