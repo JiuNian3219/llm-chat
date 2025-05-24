@@ -1,0 +1,10 @@
+.ordered-list,
+.unordered-list {
+  margin: 8px 0;
+  padding-left: 2em;
+}
+
+.list-item {
+  margin: 4px 0;
+  position: relative;
+}
