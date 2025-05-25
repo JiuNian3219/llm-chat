@@ -9,14 +9,17 @@ import useCopyToClipboard from "@/domain/chat/hooks/useCopyToClipboard";
 /**
  * 用户消息组件 - 显示在右侧
  * @param {object} props - 组件属性
- * @param {string} props.message - 展示信息
+ * @param {object} props.message - 展示信息
+ * @param {string} props.message.content - 消息内容
+ * @param {boolean} props.isLast - 是否是最后一条消息
  * @param {string} [props.className] - 额外的类名
  * @param {React.CSSProperties} [props.style] - 额外的样式
  * @returns
  */
-const UserMessage = ({ message, className, style }) => {
+const UserMessage = ({ message, isLast, className, style }) => {
+  const { content } = message;
   const [isEditing, setIsEditing] = useState(false);
-  const [inputValue, setInputValue] = useState(message);
+  const [inputValue, setInputValue] = useState(content || "");
   const { copyText, getCopyIcon } = useCopyToClipboard();
 
   /**
@@ -24,8 +27,8 @@ const UserMessage = ({ message, className, style }) => {
    */
   const handleCopyMessage = async () => {
     // 如果没有消息则不执行复制操作
-    if (!message) return;
-    await copyText(message);
+    if (!content) return;
+    await copyText(content);
   };
 
   /**
@@ -47,7 +50,7 @@ const UserMessage = ({ message, className, style }) => {
     <Flex
       vertical
       gap={4}
-      className={`${styles["message-container"]} ${className || ""}`}
+      className={`${styles["message-container"]} ${isLast ? styles["is-last"] : ""} ${className || ""}`}
     >
       <Flex
         align="center"
@@ -64,7 +67,7 @@ const UserMessage = ({ message, className, style }) => {
             className={styles.message}
             style={style}
           >
-            {message}
+            {content}
           </div>
         )}
       </Flex>
@@ -72,6 +75,7 @@ const UserMessage = ({ message, className, style }) => {
         align="center"
         justify="flex-end"
         gap={8}
+        className={styles["button-container"]}
       >
         {isEditing ? (
           <>

@@ -12,6 +12,22 @@
   word-break: break-all;
 }
 
+.button-container {
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+/* 移动到消息容器时，显示按钮 */
+.message-container:hover .button-container {
+  opacity: 1;
+  transition: opacity 0.2s ease-in-out;
+}
+
+/* 最后一条信息，始终显示按钮 */
+.message-container.is-last .button-container {
+  opacity: 1;
+}
+
 .copy-button {
   padding: 8px;
   transition: all 0.3s;

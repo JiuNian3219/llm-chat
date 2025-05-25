@@ -10,22 +10,22 @@ import DotPulseLoader from "@/base/components/DotPulseLoader";
 /**
  *
  * @param {object} props - 组件属性
- * @param {string} props.message - 展示信息
- * @param {Array} [props.followUps] - 后续提问列表
+ * @param {object} props.message - 展示信息
+ * @param {string} props.message.content - 消息内容
+ * @param {boolean} props.message.isLoading - 是否加载中
+ * @param {Array} props.message.followUps - 后续消息
+ * @param {boolean} props.isLast - 是否是最后一条消息
  * @param {string} [props.className] - 额外的类名
  * @param {React.CSSProperties} [props.style] - 额外的样式
  * @returns
  */
-const AIMessage = ({ message, followUps = [], className, style }) => {
-  // TODO: 需要根据实际情况设置加载状态
-  const isLoading = false;
-  // TODO: 需要根据实际情况设置是否完成状态
-  const isCompleted = true;
+const AIMessage = ({ message, isLast, className, style }) => {
+  const { content, isLoading, followUps } = message;
   const { copyText, getCopyIcon } = useCopyToClipboard();
   const handleCopyMessage = async () => {
     // 如果没有消息则不执行复制操作
-    if (!message) return;
-    await copyText(message);
+    if (!content) return;
+    await copyText(content);
   };
 
   return (
@@ -33,15 +33,15 @@ const AIMessage = ({ message, followUps = [], className, style }) => {
       vertical
       gap={4}
       style={style}
-      className={`${styles["message-container"]} ${className || ""}`}
+      className={`${styles["message-container"]} ${isLast ? styles["is-last"] : ""} ${className || ""}`}
     >
-      {isLoading ? (
+      {!content ? (
         <DotPulseLoader />
       ) : (
         <>
-          <MarkdownMessage message={message} />
-          {isCompleted && (
-            <Flex className="animation-fade-in">
+          <MarkdownMessage message={content} />
+          {!isLoading && (
+            <Flex className={styles["button-container"]}>
               <IconButton
                 type="text"
                 shape="default"
@@ -59,7 +59,7 @@ const AIMessage = ({ message, followUps = [], className, style }) => {
               />
             </Flex>
           )}
-          {followUps.length > 0 && isCompleted && (
+          {followUps.length > 0 && !isLoading && isLast && (
             <Flex
               vertical
               gap={4}
