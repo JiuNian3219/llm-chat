@@ -11,6 +11,7 @@ export async function nonStreamChat(content, conversationId, botId) {
   const chatResponse = await client.chat.createAndPoll({
     bot_id: botId || generalBotID,
     conversation_id: conversationId,
+    auto_save_history: true,
     additional_messages: [
       {
         role: RoleType.User,
@@ -50,6 +51,7 @@ export async function streamChat(content, callbacks, conversationId, botId) {
   const chatResponse = await client.chat.stream({
     bot_id: botId || generalBotID,
     conversation_id: conversationId,
+    auto_save_history: true,
     additional_messages: [
       {
         role: RoleType.User,
@@ -68,8 +70,8 @@ export async function streamChat(content, callbacks, conversationId, botId) {
       onMessage && onMessage(part.data);
       fullResponse += part.data.content;
     } else if (part.event === ChatEventType.CONVERSATION_MESSAGE_COMPLETED) {
-      const { role, type } = part.data;
-      if (role === "assistant" && type === "follow_up") {
+      const { type } = part.data;
+      if (type === "follow_up" || type === "answer") {
         onCompleted && onCompleted(part.data);
       }
     } else if (part.event === ChatEventType.DONE) {
@@ -82,13 +84,10 @@ export async function streamChat(content, callbacks, conversationId, botId) {
 
 /**
  * 取消聊天请求
- * @param {string} chatId 
- * @param {string} conversationId 
+ * @param {string} chatId
+ * @param {string} conversationId
  */
 export async function cancelChat(chatId, conversationId) {
-  const chatResponse = await client.chat.cancel(
-    conversationId,
-    chatId,
-  )
+  const chatResponse = await client.chat.cancel(conversationId, chatId);
   return chatResponse;
 }
