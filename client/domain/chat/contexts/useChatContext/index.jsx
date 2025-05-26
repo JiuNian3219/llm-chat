@@ -3,11 +3,21 @@ import { useImmer } from "use-immer";
 import server from "@/domain/chat/services";
 import { App } from "antd";
 
+/**
+ * @typedef {Object} ChatContextType
+ * @property {Object[]} messages - 聊天消息列表
+ * @property {string|null} currentChatId - 当前聊天ID
+ * @property {string|null} currentConversationId - 当前会话ID
+ * @property {boolean} isChatCompleted - 聊天是否已完成
+ * @property {function(string, Object=, string=): Promise<void>} handleSendMessage - 发送消息函数
+ */
+
+/** @type {import('react').Context<ChatContextType|null>} */
 export const ChatContext = createContext(null);
 
 export const ChatProvider = ({ children }) => {
   const [messages, setMessages] = useImmer([]);
-  const [isChatCompleted, setIsChatCompleted] = useState(false);
+  const [isChatCompleted, setIsChatCompleted] = useState(true);
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const [currentChatId, setCurrentChatId] = useState(null);
   const { message: messageApi } = App.useApp();
@@ -19,6 +29,7 @@ export const ChatProvider = ({ children }) => {
    * @param {function} [callbacks.onStart] - 成功回调
    * @param {function} [callbacks.onMessage] - 接收消息的回调函数
    * @param {function} [callbacks.onCompleted] - 完成消息的回调函数
+   * @param {function} [callbacks.onFollowUp] - 后续建议消息的回调函数
    * @param {function} [callbacks.onDone] - 完成消息的回调函数
    * @param {function} [callbacks.onError] - 错误消息的回调函数
    * @param {string} [conversationId] - 会话ID
@@ -49,9 +60,7 @@ export const ChatProvider = ({ children }) => {
       draft.push(aiMessage);
     });
 
-    const followUps = [];
-
-    const { onStart, onMessage, onCompleted, onDone, onError } =
+    const { onStart, onMessage, onCompleted, onFollowUp, onDone, onError } =
       callbacks || {};
 
     setIsChatCompleted(false);
@@ -75,26 +84,24 @@ export const ChatProvider = ({ children }) => {
             onMessage?.(data);
           },
           onCompleted: (data) => {
-            if (data.messageType === "follow_up") {
-              setMessages((draft) => {
-                const index = draft.findIndex(
-                  (item) => item.id === aiMessage.id
-                );
-                if (index !== -1) {
-                  draft[index].isLoading = false;
-                }
-              });
-              followUps.push(data.content);
-              onCompleted?.(data);
-            }
-          },
-          onDone: (data) => {
             setMessages((draft) => {
               const index = draft.findIndex((item) => item.id === aiMessage.id);
               if (index !== -1) {
-                draft[index].followUps = followUps;
+                draft[index].isLoading = false;
               }
-            })
+            });
+            onCompleted?.(data);
+          },
+          onFollowUp: (data) => {
+            setMessages((draft) => {
+              const index = draft.findIndex((item) => item.id === aiMessage.id);
+              if (index !== -1) {
+                draft[index].followUps.push(data.content);
+              }
+            });
+            onFollowUp?.(data);
+          },
+          onDone: (data) => {
             setIsChatCompleted(true);
             onDone?.(data);
           },
@@ -130,6 +137,10 @@ export const ChatProvider = ({ children }) => {
   );
 };
 
+/**
+ * 自定义Hook，用于获取聊天上下文
+ * @returns {ChatContextType}
+ */
 export const useChatContext = () => {
   const context = useContext(ChatContext);
   if (!context) {

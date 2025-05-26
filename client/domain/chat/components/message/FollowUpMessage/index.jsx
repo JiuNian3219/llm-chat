@@ -1,5 +1,6 @@
 import { Button } from "antd";
 import styles from "./index.module.css";
+import { useChatContext } from "@/domain/chat/contexts/useChatContext";
 
 /**
  * FollowUpMessage 组件
@@ -10,10 +11,18 @@ import styles from "./index.module.css";
  * @returns
  */
 const FollowUpMessage = ({ message, className, style }) => {
+  const { handleSendMessage: sendMessage } = useChatContext();
+
+  const handleSendMessage = () => {
+    if (!message) return;
+    sendMessage(message);
+  }
+
   return (
     <Button
       className={`${styles.follow} ${className}`}
       style={style}
+      onClick={handleSendMessage}
     >
       {message}
     </Button>

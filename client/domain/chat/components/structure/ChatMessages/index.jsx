@@ -20,7 +20,7 @@ const ChatMessages = ({ className, style }) => {
         if (role === "user") {
           return (
             <UserMessage
-              key={index}
+              key={message.id || index}
               isLast={index === messages.length - 2}
               message={message}
             />
@@ -28,7 +28,7 @@ const ChatMessages = ({ className, style }) => {
         } else if (role === "assistant") {
           return (
             <AIMessage
-              key={index}
+              key={message.id || index}
               isLast={index === messages.length - 1}
               message={message}
             />

@@ -1,4 +1,4 @@
-import { Flex } from "antd";
+import { Flex, Spin } from "antd";
 import MarkdownMessage from "../MarkdownMessage";
 import IconButton from "@/base/components/IconButton";
 import { SyncOutlined } from "@ant-design/icons";
@@ -59,21 +59,26 @@ const AIMessage = ({ message, isLast, className, style }) => {
               />
             </Flex>
           )}
-          {followUps.length > 0 && !isLoading && isLast && (
+          {!isLoading && isLast && (
             <Flex
-              vertical
+              vertical={followUps.length > 0}
               gap={4}
             >
-              {followUps.map((item, index) => (
-                <FollowUpMessage
-                  key={index}
-                  message={item}
-                  className="animation-fade-in"
-                  style={{
-                    animationDelay: `${index * 0.05}s`,
-                  }}
-                />
-              ))}
+              {followUps.length === 0 ? (
+                <Spin className={styles.loading} />
+              ) : (
+                // 当 followUps 有内容时，显示建议列表
+                followUps.map((item, index) => (
+                  <FollowUpMessage
+                    key={index}
+                    message={item}
+                    className="animation-fade-in"
+                    style={{
+                      animationDelay: `${index * 0.05}s`,
+                    }}
+                  />
+                ))
+              )}
             </Flex>
           )}
         </>

@@ -11,6 +11,7 @@ const { coze } = api;
  * @param {Function} [callbacks.onStart] - 开始回调
  * @param {Function} [callbacks.onMessage] - 消息回调
  * @param {Function} [callbacks.onCompleted] - 完成回调
+ * @param {Function} [callbacks.onFollowUp] - 后续建议回调
  * @param {Function} [callbacks.onDone] - 完成回调
  * @param {Function} [callbacks.onError] - 错误回调
  * @param {string} [conversationId] - 会话ID
@@ -18,7 +19,7 @@ const { coze } = api;
  */
 function streamChatByCoze(content, callbacks, conversationId, botId) {
   try {
-    const { onStart, onMessage, onCompleted, onDone, onError } = callbacks;
+    const { onStart, onMessage, onCompleted, onFollowUp, onDone, onError } = callbacks;
     if (!content) {
       return Promise.reject(new Error("content不能为空"));
     }
@@ -48,6 +49,9 @@ function streamChatByCoze(content, callbacks, conversationId, botId) {
             break;
           case "completed":
             onCompleted && onCompleted(data);
+            break;
+          case "follow_up":
+            onFollowUp && onFollowUp(data);
             break;
           case "done":
             onDone && onDone(data);
