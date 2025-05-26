@@ -16,7 +16,7 @@ import styles from "./index.module.css";
 const AIInputPanel = ({ className, style }) => {
   const options = [{ value: "LLM", label: "LLM Chat" }];
   const [message, setMessage] = useState("");
-  const { handleSendMessage: sendMessage, isLoading } = useChatContext();
+  const { handleSendMessage: sendMessage, isChatCompleted } = useChatContext();
 
   const handleSendMessage = () => {
     if (!message) return;
@@ -53,8 +53,8 @@ const AIInputPanel = ({ className, style }) => {
           <IconButton
             disabled={!message}
             icon={<ArrowUpOutlined />}
-            loading={isLoading}
             onClick={handleSendMessage}
+            loading={!isChatCompleted}
             type="primary"
           />
         </Flex>
