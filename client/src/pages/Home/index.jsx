@@ -32,6 +32,7 @@ const Home = () => {
         description="我可以帮你写代码、读文件、写错各种创意内容，请把你的任务交给我吧~"
         style={{
           opacity: inBottom ? "0" : "1",
+          height: inBottom ? "0" : "fit-content",
           display: shouldHide ? "none" : "flex",
         }}
         className={styles.greeting}

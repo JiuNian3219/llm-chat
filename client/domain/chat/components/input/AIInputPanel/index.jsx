@@ -24,9 +24,18 @@ const AIInputPanel = ({ className, style }) => {
     setMessage("");
   };
 
+  const handleKeyDown = (e) => {
+    // 如果按下的是Ctrl + Enter，则发送消息
+    if (e.ctrlKey && e.key === "Enter") {
+      e.preventDefault(); // 阻止默认行为
+      handleSendMessage();
+    }
+  }
+
   return (
     <div
       className={`${styles["ai-input-panel-box"]} ${className || ""}`}
+      onKeyDown={handleKeyDown}
       style={style}
     >
       <MultilineInput
