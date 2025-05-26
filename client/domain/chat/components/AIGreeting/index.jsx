@@ -9,15 +9,19 @@ const { Title, Paragraph } = Typography;
  * @param {object} props - 组件属性
  * @param {string} props.title - 标题
  * @param {string} props.description - 描述
+ * @param {string} [props.className] - 可选的自定义类名
+ * @param {import("react").CSSProperties} [props.style] - 可选的自定义样式
  * @returns
  */
-const AIGreeting = ({ title, description }) => {
+const AIGreeting = ({ title, description, className, style }) => {
   return (
     <Flex
       vertical
       justify="center"
       align="center"
       gap="10px"
+      className={className}
+      style={style}
     >
       <Flex>
         <MessageTwoTone className={styles["logo"]} />

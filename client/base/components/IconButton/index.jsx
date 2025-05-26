@@ -11,6 +11,7 @@ import { LoadingOutlined } from "@ant-design/icons";
  * @param {"small" | "medium" | "large"} [props.size] - 图标大小
  * @param {"circle" | "default" | "round"} [props.shape] - 图标类型
  * @param {boolean} [props.loading] - 是否加载中
+ * @param {boolean} [props.disabled] - 禁用状态
  * @param {import("react").MouseEventHandler} [props.onClick] - 点击事件
  * @param {import("react").CSSProperties} [props.style] - 组件样式
  * @param {string} [props.className] - 组件类名

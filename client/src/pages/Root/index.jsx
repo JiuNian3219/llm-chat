@@ -2,6 +2,7 @@ import { MessageTwoTone } from "@ant-design/icons";
 import { ConfigProvider, Flex, Layout, Typography } from "antd";
 import { Outlet } from "react-router-dom";
 import styles from "./index.module.css";
+import { ChatProvider } from "@/domain/chat/contexts/useChatContext";
 const { Header, Content, Sider } = Layout;
 
 const { Title } = Typography;
@@ -56,7 +57,9 @@ const Root = () => {
             </Title>
           </Header>
           <Content>
-            <Outlet />
+            <ChatProvider>
+              <Outlet />
+            </ChatProvider>
           </Content>
         </Layout>
       </Layout>

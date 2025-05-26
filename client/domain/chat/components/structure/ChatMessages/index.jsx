@@ -1,6 +1,6 @@
 import { useChatContext } from "@/domain/chat/contexts/useChatContext";
-import UserMessage from "../../message/UserMessage";
 import AIMessage from "../../message/AIMessage";
+import UserMessage from "../../message/UserMessage";
 import styles from "./index.module.css";
 
 /**

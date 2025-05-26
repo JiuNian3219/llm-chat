@@ -1,0 +1,17 @@
+.home-container {
+  height: 100%;
+}
+
+.greeting {
+  transition: all 0.3s ease-in-out;
+}
+
+.messages {
+  width: 800px;
+  transition: all 0.4s ease-in-out;
+}
+
+.input {
+  width: 800px;
+  transition: all 0.4s ease-in-out;
+}
