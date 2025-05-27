@@ -8,7 +8,7 @@ import { LoadingOutlined } from "@ant-design/icons";
  * @param {object} props - 组件属性
  * @param {import("react").ReactNode} props.icon - 图标
  * @param {"primary" | "default" | "dashed" | "text" | "link"} [props.type] - 按钮类型
- * @param {"small" | "medium" | "large"} [props.size] - 图标大小
+ * @param {"minuscule" | "small" | "medium" | "large"} [props.size] - 图标大小
  * @param {"circle" | "default" | "round"} [props.shape] - 图标类型
  * @param {boolean} [props.loading] - 是否加载中
  * @param {boolean} [props.disabled] - 禁用状态
@@ -24,7 +24,6 @@ const IconButton = ({ icon, shape, size, type, loading, disabled, onClick, style
       type={type || "default"}
       style={{
         fontSize: getIconSize(size),
-        opacity: loading ? 0.5 : 1,
         cursor: loading ? "default" :  disabled ? "" : "pointer",
         ...style
       }}
