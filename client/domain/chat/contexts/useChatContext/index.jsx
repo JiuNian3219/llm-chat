@@ -102,11 +102,16 @@ export const ChatProvider = ({ children }) => {
             onFollowUp?.(data);
           },
           onDone: (data) => {
-            setIsChatCompleted(true);
+            // 保证消息加载完成后，设置聊天状态为完成
+            setTimeout(() => {
+              setIsChatCompleted(true);
+              setCurrentChatId(null);
+            }, 1000);
             onDone?.(data);
           },
           onError: (error) => {
             setIsChatCompleted(true);
+            setCurrentChatId(null);
             messageApi.error("AI对话发生错误，请稍后再试");
             onError?.(error);
           },
@@ -115,10 +120,9 @@ export const ChatProvider = ({ children }) => {
       );
     } catch (error) {
       // TODO: 需要处理系统错误
-      console.error("流式聊天请求错误:", error);
-    } finally {
       setIsChatCompleted(true);
       setCurrentChatId(null);
+      console.error("流式聊天请求错误:", error);
     }
   };
 
