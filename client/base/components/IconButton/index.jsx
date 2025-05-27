@@ -17,7 +17,7 @@ import { LoadingOutlined } from "@ant-design/icons";
  * @param {string} [props.className] - 组件类名
  * @returns
  */
-const IconButton = ({ icon, shape, size, type, loading, onClick, style, className, ...props }) => {
+const IconButton = ({ icon, shape, size, type, loading, disabled, onClick, style, className, ...props }) => {
   return (
     <Button
       shape={shape ||"circle"}
@@ -25,9 +25,10 @@ const IconButton = ({ icon, shape, size, type, loading, onClick, style, classNam
       style={{
         fontSize: getIconSize(size),
         opacity: loading ? 0.5 : 1,
-        cursor: loading ? "default" : "pointer",
+        cursor: loading ? "default" :  disabled ? "" : "pointer",
         ...style
       }}
+      disabled={disabled}
       className={className}
       onClick={(e) => {
         // 如果正在加载，则阻止点击事件
