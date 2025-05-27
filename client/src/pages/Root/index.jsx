@@ -28,7 +28,9 @@ const Root = () => {
         },
       }}
     >
-      <Layout hasSider>
+      <Layout hasSider style={{
+        height: "100vh"
+      }}>
         <Sider
           width="300px"
           className={styles["sider"]}
