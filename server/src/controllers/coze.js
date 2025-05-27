@@ -3,6 +3,7 @@ import {
   nonStreamChat,
   streamChat,
 } from "../services/coze/chat.js";
+import { cancelFileUpload, uploadFile } from "../services/coze/upload.js";
 import {
   respondWithError,
   respondWithSuccess,
@@ -69,7 +70,9 @@ export async function streamChatHandler(req, res) {
             `data: ${JSON.stringify({ type: "follow_up", content: data.content })}\n\n`
           );
         } else {
-          res.write(`data: ${JSON.stringify({ type: "completed", content: data.content })}\n\n`);
+          res.write(
+            `data: ${JSON.stringify({ type: "completed", content: data.content })}\n\n`
+          );
         }
       },
       onDone: (data) => {
@@ -106,5 +109,52 @@ export async function cancelChatHandler(req, res) {
     respondWithSuccess(res, result);
   } else {
     respondWithError(res, result?.last_error?.msg || "取消失败，请稍后再试");
+  }
+}
+
+/**
+ * 处理上传文件请求
+ * @type {import('express').RequestHandler}
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export async function uploadFileHandler(req, res) {
+  const { file } = req;
+  // 检查是否有文件上传
+  if (!file) {
+    respondWithError(res, "没有上传的文件", 400);
+    return;
+  }
+  const fileInfo = {
+    filename: file.filename,
+    originalname: file.originalname,
+    size: file.size,
+    path: file.filename,
+  }
+  try {
+    const fileObj = await uploadFile(fileInfo);
+    respondWithSuccess(res, fileObj);
+  } catch (error) {
+    respondWithError(res, error.message || "文件上传失败", 500);
+  }
+}
+
+/**
+ * 处理取消文件上传请求
+ * @type {import('express').RequestHandler}
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export async function cancelFileUploadHandler(req, res) {
+  const { fileId, filename } = req.body;
+  if (!fileId || !filename) {
+    respondWithError(res, "缺少文件ID", 400);
+    return;
+  }
+  const result = await cancelFileUpload(fileId, filename);
+  if (result.status === "canceled") {
+    respondWithSuccess(res, result);
+  } else {
+    respondWithError(res, result?.message || "取消文件上传失败，请稍后再试", 500);
   }
 }
