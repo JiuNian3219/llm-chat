@@ -20,7 +20,7 @@
   width: 800px;
 }
 
-.input-panel::before {
+.input-panel-box::before {
   content: "";
   position: absolute;
   top: -20.2px;
