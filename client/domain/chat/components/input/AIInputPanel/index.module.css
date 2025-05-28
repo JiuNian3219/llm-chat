@@ -10,3 +10,10 @@
 .file-queue {
   margin-bottom: 8px;
 }
+
+.stop-button-icon {
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  background-color: #fff;
+}

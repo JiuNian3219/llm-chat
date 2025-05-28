@@ -14,13 +14,15 @@ import DotPulseLoader from "@/base/components/DotPulseLoader";
  * @param {string} props.message.content - 消息内容
  * @param {boolean} props.message.isLoading - 是否加载中
  * @param {Array} props.message.followUps - 后续消息
+ * @param {boolean} props.message.isCancel - 是否取消
  * @param {boolean} props.isLast - 是否是最后一条消息
  * @param {string} [props.className] - 额外的类名
  * @param {React.CSSProperties} [props.style] - 额外的样式
  * @returns
  */
 const AIMessage = ({ message, isLast, className, style }) => {
-  const { content, isLoading, followUps } = message;
+  const { content, isLoading, followUps, isCancel } = message;
+  console.log(content);
   const { copyText, getCopyIcon } = useCopyToClipboard();
   const handleCopyMessage = async () => {
     // 如果没有消息则不执行复制操作
@@ -35,7 +37,7 @@ const AIMessage = ({ message, isLast, className, style }) => {
       style={style}
       className={`${styles["message-container"]} ${isLast ? styles["is-last"] : ""} ${className || ""}`}
     >
-      {!content ? (
+      {!content && !isCancel ? (
         <DotPulseLoader />
       ) : (
         <>
@@ -59,7 +61,7 @@ const AIMessage = ({ message, isLast, className, style }) => {
               />
             </Flex>
           )}
-          {!isLoading && isLast && (
+          {!isLoading && !isCancel && isLast && (
             <Flex
               vertical={followUps.length > 0}
               gap={4}
@@ -83,6 +85,17 @@ const AIMessage = ({ message, isLast, className, style }) => {
           )}
         </>
       )}
+      {
+        isCancel && isLast && (
+          <Flex
+            justify="center"
+            align="center"
+            className={styles["cancel-message"]}
+          >
+            <span>AI已取消当前消息</span>
+          </Flex>
+        )
+      }
     </Flex>
   );
 };

@@ -11,11 +11,11 @@ import { useChatContext } from "@/domain/chat/contexts/useChatContext";
  * @returns
  */
 const FollowUpMessage = ({ message, className, style }) => {
-  const { handleSendMessage: sendMessage } = useChatContext();
+  const { sendStreamMessage } = useChatContext();
 
   const handleSendMessage = () => {
     if (!message) return;
-    sendMessage({ message });
+    sendStreamMessage({ message });
   };
 
   return (

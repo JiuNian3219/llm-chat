@@ -23,7 +23,7 @@ const UserMessage = ({ message, isLast, className, style }) => {
   const { content, files } = message;
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState(content || "");
-  const { handleSendMessage: sendMessage, isChatCompleted } = useChatContext();
+  const { sendStreamMessage, isChatCompleted } = useChatContext();
   const { copyText, getCopyIcon } = useCopyToClipboard();
 
   /**
@@ -52,7 +52,7 @@ const UserMessage = ({ message, isLast, className, style }) => {
   };
 
   const handleSendMessage = () => {
-    sendMessage({ message: inputValue.trim(), attachments: files });
+    sendStreamMessage({ message: inputValue.trim(), attachments: files });
     toggleEdit();
   };
 

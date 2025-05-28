@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useRef, useState } from "react";
 import { useImmer } from "use-immer";
 import server from "@/domain/chat/services";
 import { App } from "antd";
@@ -27,9 +27,10 @@ import { BASE_URL } from "@/base/const";
  * @property {string|null} currentChatId - 当前聊天ID
  * @property {string|null} currentConversationId - 当前会话ID
  * @property {boolean} isChatCompleted - 聊天是否已完成
- * @property {function(SendMessageParams): void} handleSendMessage - 发送消息函数
- * @property {function(Array<File>): void} handleUploadFile - 上传文件函数
- * @property {function(string, string): void} handleCancelFileUpload - 取消文件上传函数
+ * @property {function(SendMessageParams): void} sendStreamMessage - 发送流式消息函数
+ * @property {function(): Promise<void>} cancelCurrentStream - 取消当前流式对话函数
+ * @property {function(Array<File>): void} uploadFiles - 处理文件上传函数
+ * @property {function(string, string): void} cancelFileUpload - 取消文件上传函数
  */
 
 /** @type {import('react').Context<ChatContextType|null>} */
@@ -42,6 +43,7 @@ export const ChatProvider = ({ children }) => {
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const [currentChatId, setCurrentChatId] = useState(null);
   const { message: messageApi } = App.useApp();
+  const cancelStreamRef = useRef(null);
 
   /**
    * 向AI发送消息
@@ -57,7 +59,7 @@ export const ChatProvider = ({ children }) => {
    * @param {function} [params.callbacks.onError] - 错误消息的回调函数
    * @param {string} [params.conversationId] - 会话ID
    */
-  const handleSendMessage = async ({
+  const sendStreamMessage = async ({
     message,
     attachments,
     callbacks,
@@ -85,6 +87,7 @@ export const ChatProvider = ({ children }) => {
       followUps: [],
       // 用于标记该消息是否加载中
       isLoading: true,
+      isCancel: false,
     };
     setMessages((draft) => {
       draft.push(aiMessage);
@@ -107,13 +110,21 @@ export const ChatProvider = ({ children }) => {
     }
 
     try {
-      await server.streamChatByCoze(
+      // 记录当前的流式对话取消函数
+      cancelStreamRef.current = server.streamChatByCoze(
         content,
         contentType,
         {
           onStart: (data) => {
             setCurrentConversationId(data.conversationId);
             setCurrentChatId(data.chatId);
+            // 更新AI消息的ChatID
+            setMessages((draft) => {
+              const index = draft.findIndex((item) => item.id === aiMessage.id);
+              if (index !== -1) {
+                draft[index].chatId = data.chatId;
+              }
+            });
             onStart?.(data);
           },
           onMessage: (data) => {
@@ -149,9 +160,12 @@ export const ChatProvider = ({ children }) => {
               setIsChatCompleted(true);
               setCurrentChatId(null);
             }, 1000);
+            // 清除取消流函数
+            cancelStreamRef.current = null;
             onDone?.(data);
           },
           onError: (error) => {
+            cancelStreamRef.current = null;
             setIsChatCompleted(true);
             setCurrentChatId(null);
             messageApi.error("AI对话发生错误，请稍后再试");
@@ -161,6 +175,7 @@ export const ChatProvider = ({ children }) => {
         conversationId
       );
     } catch (error) {
+      cancelStreamRef.current = null;
       setIsChatCompleted(true);
       setCurrentChatId(null);
       messageApi.error("AI对话发生错误，请稍后再试");
@@ -168,10 +183,43 @@ export const ChatProvider = ({ children }) => {
   };
 
   /**
+   * 取消当前的流式对话
+   */
+  const cancelCurrentStream = async () => {
+    if (
+      !cancelStreamRef.current ||
+      !currentChatId ||
+      !currentConversationId ||
+      isChatCompleted
+    )
+      return;
+    const response = await server.cancelChatByCoze(
+      currentConversationId,
+      currentChatId
+    );
+    const { status } = response.data;
+    if (status === "canceled") {
+      setMessages((draft) => {
+        const index = draft.findIndex((item) => item.chatId === currentChatId);
+        if (index !== -1) {
+          draft[index].isLoading = false;
+          draft[index].isCancel = true;
+        }
+      });
+      setIsChatCompleted(true);
+      setCurrentChatId(null);
+      cancelStreamRef?.current();
+      messageApi.success("对话已取消");
+    } else {
+      messageApi.error("取消对话失败，请稍后再试");
+    }
+  };
+
+  /**
    * 上传文件
    * @param {Array<File>} files - 要上传的文件
    */
-  const handleUploadFile = (files) => {
+  const uploadFiles = (files) => {
     if (!files || files.length === 0) return;
     if (files.length > UPLOAD_LIMITS.maxFileCount) {
       messageApi.warning("一次最多只能上传10个文件");
@@ -229,7 +277,7 @@ export const ChatProvider = ({ children }) => {
    * @param {string} fileId - 文件ID
    * @param {string} filename - 文件名
    */
-  const handleCancelFileUpload = (fileId, filename) => {
+  const cancelFileUpload = (fileId, filename) => {
     if (!fileId || !filename) {
       return;
     }
@@ -277,9 +325,10 @@ export const ChatProvider = ({ children }) => {
         files,
         currentChatId,
         currentConversationId,
-        handleSendMessage,
-        handleUploadFile,
-        handleCancelFileUpload,
+        sendStreamMessage,
+        cancelCurrentStream,
+        uploadFiles,
+        cancelFileUpload,
         isChatCompleted,
       }}
     >

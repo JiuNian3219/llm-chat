@@ -1,6 +1,6 @@
 import IconButton from "@/base/components/IconButton";
 import { useChatContext } from "@/domain/chat/contexts/useChatContext";
-import { ArrowUpOutlined } from "@ant-design/icons";
+import { ArrowUpOutlined, BorderOutlined } from "@ant-design/icons";
 import { Divider, Flex, Select } from "antd";
 import { useState } from "react";
 import MultilineInput from "../MultilineInput";
@@ -18,15 +18,12 @@ import FileQueue from "../../structure/FileQueue";
 const AIInputPanel = ({ className, style }) => {
   const options = [{ value: "LLM", label: "LLM Chat" }];
   const [message, setMessage] = useState("");
-  const {
-    handleSendMessage: sendMessage,
-    isChatCompleted,
-    files,
-  } = useChatContext();
+  const { sendStreamMessage, cancelCurrentStream, isChatCompleted, files } =
+    useChatContext();
 
   const handleSendMessage = () => {
     if (!message) return;
-    sendMessage({ message });
+    sendStreamMessage({ message });
     setMessage("");
   };
 
@@ -69,10 +66,14 @@ const AIInputPanel = ({ className, style }) => {
         >
           <FileUploadButton />
           <IconButton
-            disabled={!message || !isChatCompleted}
-            icon={<ArrowUpOutlined />}
-            onClick={handleSendMessage}
-            loading={!isChatCompleted}
+            icon={
+              isChatCompleted ? (
+                <ArrowUpOutlined />
+              ) : (
+                <div className={styles["stop-button-icon"]} />
+              )
+            }
+            onClick={isChatCompleted ? handleSendMessage : cancelCurrentStream}
             type="primary"
           />
         </Flex>

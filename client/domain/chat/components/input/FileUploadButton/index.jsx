@@ -14,7 +14,7 @@ import { UPLOAD_LIMITS } from "@/domain/chat/const";
  */
 const FileUploadButton = ({ className, style, ...props }) => {
   const fileInputRef = useRef(null);
-  const { handleUploadFile } = useChatContext();
+  const { uploadFiles } = useChatContext();
   const handleClick = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
@@ -28,7 +28,7 @@ const FileUploadButton = ({ className, style, ...props }) => {
   const handleFileChange = (e) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      handleUploadFile(Array.from(files));
+      uploadFiles(Array.from(files));
     }
     e.target.value = ''
   }

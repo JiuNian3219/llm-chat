@@ -16,7 +16,7 @@ import { useChatContext } from "@/domain/chat/contexts/useChatContext";
  */
 const FilePreview = ({ file, close = true }) => {
   const [imageVisible, setImageVisible] = useState(false);
-  const { handleCancelFileUpload } = useChatContext();
+  const { cancelFileUpload } = useChatContext();
   const { id, name, size, type, url, status } = file;
   const isImage = type === "image";
 
@@ -44,7 +44,7 @@ const FilePreview = ({ file, close = true }) => {
    */
   const handleCancelUpload = (e) => {
     e.stopPropagation();
-    handleCancelFileUpload(id, name);
+    cancelFileUpload(id, name);
   };
 
   return (
