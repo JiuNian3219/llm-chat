@@ -12,8 +12,9 @@ import { useChatContext } from "@/domain/chat/contexts/useChatContext";
  * 文件预览组件，用于展示文件信息和预览图片文件
  * @param {object} props
  * @param {object} [props.file] - 文件对象，包含name, type, size等属性
+ * @param {boolean} [props.close] - 是否显示关闭按钮，默认为true
  */
-const FilePreview = ({ file }) => {
+const FilePreview = ({ file, close = true }) => {
   const [imageVisible, setImageVisible] = useState(false);
   const { handleCancelFileUpload } = useChatContext();
   const { id, name, size, type, url, status } = file;
@@ -91,12 +92,14 @@ const FilePreview = ({ file }) => {
           <span>{formatFileSize(size)}</span>
         </Flex>
       </Flex>
-      <IconButton
-        icon={<CloseOutlined />}
-        size="minuscule"
-        className={styles["close-button"]}
-        onClick={handleCancelUpload}
-      />
+      {close && (
+        <IconButton
+          icon={<CloseOutlined />}
+          size="minuscule"
+          className={styles["close-button"]}
+          onClick={handleCancelUpload}
+        />
+      )}
     </Flex>
   );
 };

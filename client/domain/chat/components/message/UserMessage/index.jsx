@@ -5,19 +5,21 @@ import { Button, Flex } from "antd";
 import { useState } from "react";
 import TextArea from "antd/es/input/TextArea";
 import useCopyToClipboard from "@/domain/chat/hooks/useCopyToClipboard";
+import FileQueue from "../../structure/FileQueue";
 
 /**
  * 用户消息组件 - 显示在右侧
  * @param {object} props - 组件属性
  * @param {object} props.message - 展示信息
  * @param {string} props.message.content - 消息内容
+ * @param {Array} [props.message.files] - 消息附带的文件列表
  * @param {boolean} props.isLast - 是否是最后一条消息
  * @param {string} [props.className] - 额外的类名
  * @param {React.CSSProperties} [props.style] - 额外的样式
  * @returns
  */
 const UserMessage = ({ message, isLast, className, style }) => {
-  const { content } = message;
+  const { content, files } = message;
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState(content || "");
   const { copyText, getCopyIcon } = useCopyToClipboard();
@@ -47,68 +49,76 @@ const UserMessage = ({ message, isLast, className, style }) => {
   };
 
   return (
-    <Flex
-      vertical
-      gap={4}
-      className={`${styles["message-container"]} ${isLast ? styles["is-last"] : ""} ${className || ""}`}
-    >
+    <>
+      <FileQueue
+        files={files || []}
+        close={false}
+        direction="right"
+        maxHeight={false}
+      />
       <Flex
-        align="center"
-        justify="flex-end"
+        vertical
+        gap={4}
+        className={`${styles["message-container"]} ${isLast ? styles["is-last"] : ""} ${className || ""}`}
       >
-        {isEditing ? (
-          <TextArea
-            autoSize={{ minRows: 2, maxRows: 8 }}
-            value={inputValue}
-            onChange={handleInputChange}
-          />
-        ) : (
-          <div
-            className={styles.message}
-            style={style}
-          >
-            {content}
-          </div>
-        )}
-      </Flex>
-      <Flex
-        align="center"
-        justify="flex-end"
-        gap={8}
-        className={styles["button-container"]}
-      >
-        {isEditing ? (
-          <>
-            <Button
-              type="text"
-              onClick={toggleEdit}
+        <Flex
+          align="center"
+          justify="flex-end"
+        >
+          {isEditing ? (
+            <TextArea
+              autoSize={{ minRows: 2, maxRows: 8 }}
+              value={inputValue}
+              onChange={handleInputChange}
+            />
+          ) : (
+            <div
+              className={styles.message}
+              style={style}
             >
-              取消
-            </Button>
-            <Button type="primary">发送</Button>
-          </>
-        ) : (
-          <>
-            <IconButton
-              type="text"
-              icon={getCopyIcon()}
-              shape="default"
-              size="small"
-              onClick={handleCopyMessage}
-              className={styles["copy-button"]}
-            />
-            <IconButton
-              type="text"
-              icon={<EditOutlined />}
-              shape="default"
-              size="small"
-              onClick={toggleEdit}
-              className={styles["edit-button"]}
-            />
-          </>
-        )}
+              {content}
+            </div>
+          )}
+        </Flex>
+        <Flex
+          align="center"
+          justify="flex-end"
+          gap={8}
+          className={styles["button-container"]}
+        >
+          {isEditing ? (
+            <>
+              <Button
+                type="text"
+                onClick={toggleEdit}
+              >
+                取消
+              </Button>
+              <Button type="primary">发送</Button>
+            </>
+          ) : (
+            <>
+              <IconButton
+                type="text"
+                icon={getCopyIcon()}
+                shape="default"
+                size="small"
+                onClick={handleCopyMessage}
+                className={styles["copy-button"]}
+              />
+              <IconButton
+                type="text"
+                icon={<EditOutlined />}
+                shape="default"
+                size="small"
+                onClick={toggleEdit}
+                className={styles["edit-button"]}
+              />
+            </>
+          )}
+        </Flex>
       </Flex>
-    </Flex>
+    </>
   );
 };
 

@@ -5,6 +5,9 @@ import { Divider, Flex, Select } from "antd";
 import { useState } from "react";
 import MultilineInput from "../MultilineInput";
 import styles from "./index.module.css";
+import FilePreview from "../../message/FilePreview";
+import FileUploadButton from "../FileUploadButton";
+import FileQueue from "../../structure/FileQueue";
 
 /**
  * AI输入面板组件
@@ -16,7 +19,11 @@ import styles from "./index.module.css";
 const AIInputPanel = ({ className, style }) => {
   const options = [{ value: "LLM", label: "LLM Chat" }];
   const [message, setMessage] = useState("");
-  const { handleSendMessage: sendMessage, isChatCompleted } = useChatContext();
+  const {
+    handleSendMessage: sendMessage,
+    isChatCompleted,
+    files,
+  } = useChatContext();
 
   const handleSendMessage = () => {
     if (!message) return;
@@ -30,7 +37,7 @@ const AIInputPanel = ({ className, style }) => {
       e.preventDefault(); // 阻止默认行为
       handleSendMessage();
     }
-  }
+  };
 
   return (
     <div
@@ -38,6 +45,7 @@ const AIInputPanel = ({ className, style }) => {
       onKeyDown={handleKeyDown}
       style={style}
     >
+      <FileQueue files={files} className={styles["file-queue"]} />
       <MultilineInput
         value={message}
         onChange={setMessage}
@@ -56,9 +64,7 @@ const AIInputPanel = ({ className, style }) => {
           gap={8}
           align="center"
         >
-          <IconButton
-            icon={<PaperClipOutlined />}
-          />
+          <FileUploadButton />
           <IconButton
             disabled={!message}
             icon={<ArrowUpOutlined />}

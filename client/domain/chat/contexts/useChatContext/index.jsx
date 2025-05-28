@@ -44,15 +44,16 @@ export const ChatProvider = ({ children }) => {
   const handleSendMessage = async (message, callbacks, conversationId) => {
     message = message?.trim();
     if (!message) return;
-    const useMessage = {
+    const userMessage = {
       id: crypto.randomUUID(),
       role: "user",
       content: message,
       conversationId,
+      files: files
     };
 
     setMessages((draft) => {
-      draft.push(useMessage);
+      draft.push(userMessage);
     });
 
     const aiMessage = {
@@ -144,7 +145,7 @@ export const ChatProvider = ({ children }) => {
   const handleUploadFile = (files) => {
     console.log("handleUploadFile", files);
     if (!files || files.length === 0) return;
-    if (files.length > UPLOAD_LIMITS.fileSize) {
+    if (files.length > UPLOAD_LIMITS.maxFileCount) {
       messageApi.warning("一次最多只能上传10个文件");
       return;
     }
