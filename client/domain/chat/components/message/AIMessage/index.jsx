@@ -22,7 +22,6 @@ import DotPulseLoader from "@/base/components/DotPulseLoader";
  */
 const AIMessage = ({ message, isLast, className, style }) => {
   const { content, isLoading, followUps, isCancel } = message;
-  console.log(content);
   const { copyText, getCopyIcon } = useCopyToClipboard();
   const handleCopyMessage = async () => {
     // 如果没有消息则不执行复制操作
