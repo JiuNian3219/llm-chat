@@ -22,10 +22,12 @@ export const uploadFile = async (file) => {
   const filePath = join(__dirname, "../../../uploads", file.filename);
   const fileBuffer = await createReadStream(filePath);
   const fileObj = await client.files.upload({ file: fileBuffer });
+  // 文件后缀
+  const fileExt = file.filename.split('.').pop();
   const newPath = join(
     __dirname,
     "../../../uploads",
-    fileObj.id + "-" + file.filename
+    fileObj.id + "." + fileExt
   );
 
   // 重命名文件
@@ -40,6 +42,7 @@ export const uploadFile = async (file) => {
     id: fileObj.id,
     originalname: file.originalname,
     size: file.size,
+    url: `/files/${fileObj.id}.${fileExt}`,
   };
 };
 
@@ -53,7 +56,8 @@ export const cancelFileUpload = async (fileId, filename) => {
   // 在 uploads 目录中删除文件
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = dirname(__filename);
-  const filePath = join(__dirname, "../../../uploads", fileId + "-" + filename);
+  const fileExt = filename.split('.').pop();
+  const filePath = join(__dirname, "../../../uploads", fileId + "." + fileExt);
   try {
     await new Promise((resolve, reject) => {
       unlink(filePath, (err) => {

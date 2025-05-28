@@ -1,6 +1,9 @@
 import cors from "cors";
 import express from "express";
 import coze from "./routers/coze.js";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+import fs from "fs";
 
 const app = express();
 const port = 3001;
@@ -15,6 +18,16 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/coze", coze)
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// 确保 uploads 目录存在
+const uploadsDir = join(__dirname, "../uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+app.use('/files', express.static(join(__dirname, "../uploads")));
 
 app.listen(port, () => {
   console.log(`Express服务器运行在 http://localhost:${port}`);
