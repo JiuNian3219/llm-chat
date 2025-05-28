@@ -1,11 +1,10 @@
 import IconButton from "@/base/components/IconButton";
 import { useChatContext } from "@/domain/chat/contexts/useChatContext";
-import { ArrowUpOutlined, PaperClipOutlined } from "@ant-design/icons";
+import { ArrowUpOutlined } from "@ant-design/icons";
 import { Divider, Flex, Select } from "antd";
 import { useState } from "react";
 import MultilineInput from "../MultilineInput";
 import styles from "./index.module.css";
-import FilePreview from "../../message/FilePreview";
 import FileUploadButton from "../FileUploadButton";
 import FileQueue from "../../structure/FileQueue";
 
@@ -34,7 +33,8 @@ const AIInputPanel = ({ className, style }) => {
   const handleKeyDown = (e) => {
     // 如果按下的是Ctrl + Enter，则发送消息
     if (e.ctrlKey && e.key === "Enter") {
-      e.preventDefault(); // 阻止默认行为
+      e.preventDefault();
+      if (!isChatCompleted) return;
       handleSendMessage();
     }
   };
@@ -66,7 +66,7 @@ const AIInputPanel = ({ className, style }) => {
         >
           <FileUploadButton />
           <IconButton
-            disabled={!message}
+            disabled={!message || !isChatCompleted}
             icon={<ArrowUpOutlined />}
             onClick={handleSendMessage}
             loading={!isChatCompleted}
