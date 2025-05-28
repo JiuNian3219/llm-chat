@@ -23,24 +23,20 @@ instance.interceptors.request.use((config) => {
 
 instance.interceptors.response.use(
   (response) => {
-    const { data, msg, code } = response.data;
+    const { code, msg } = response.data;
     if (code === 200) {
-      return data;
+      return response.data;
     }
-    return Promise.reject();
+    return Promise.reject(new Error(msg || "请求失败"));
   },
   (error) => {
-    if (error.response) {
-      switch (error.response.status) {
-        case 401:
-          break;
-        case 404:
-          break;
-        default:
-          break;
-      }
+    const { data } = error.response || {};
+    if (data) {
+      return Promise.reject(new Error(data.msg || "请求失败"));
     }
-    return Promise.reject();
+    return Promise.reject(
+      new Error("网络错误，请稍后再试")
+    );
   }
 );
 
