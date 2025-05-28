@@ -26,7 +26,7 @@ const AIInputPanel = ({ className, style }) => {
 
   const handleSendMessage = () => {
     if (!message) return;
-    sendMessage(message);
+    sendMessage({ message });
     setMessage("");
   };
 
@@ -45,7 +45,10 @@ const AIInputPanel = ({ className, style }) => {
       onKeyDown={handleKeyDown}
       style={style}
     >
-      <FileQueue files={files} className={styles["file-queue"]} />
+      <FileQueue
+        files={files}
+        className={styles["file-queue"]}
+      />
       <MultilineInput
         value={message}
         onChange={setMessage}

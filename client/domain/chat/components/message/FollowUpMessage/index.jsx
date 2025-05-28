@@ -15,8 +15,8 @@ const FollowUpMessage = ({ message, className, style }) => {
 
   const handleSendMessage = () => {
     if (!message) return;
-    sendMessage(message);
-  }
+    sendMessage({ message });
+  };
 
   return (
     <Button

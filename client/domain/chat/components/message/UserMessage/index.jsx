@@ -1,11 +1,12 @@
 import IconButton from "@/base/components/IconButton";
 import styles from "./index.module.css";
 import { EditOutlined } from "@ant-design/icons";
-import { Button, Flex } from "antd";
+import { App, Button, Flex } from "antd";
 import { useState } from "react";
 import TextArea from "antd/es/input/TextArea";
 import useCopyToClipboard from "@/domain/chat/hooks/useCopyToClipboard";
 import FileQueue from "../../structure/FileQueue";
+import { useChatContext } from "@/domain/chat/contexts/useChatContext";
 
 /**
  * 用户消息组件 - 显示在右侧
@@ -22,6 +23,7 @@ const UserMessage = ({ message, isLast, className, style }) => {
   const { content, files } = message;
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState(content || "");
+  const { handleSendMessage: sendMessage, isChatCompleted } = useChatContext();
   const { copyText, getCopyIcon } = useCopyToClipboard();
 
   /**
@@ -38,6 +40,7 @@ const UserMessage = ({ message, isLast, className, style }) => {
    */
   const toggleEdit = () => {
     setIsEditing(!isEditing);
+    setInputValue(content || "");
   };
 
   /**
@@ -46,6 +49,11 @@ const UserMessage = ({ message, isLast, className, style }) => {
    */
   const handleInputChange = (e) => {
     setInputValue(e.target.value);
+  };
+
+  const handleSendMessage = () => {
+    sendMessage({ message: inputValue.trim(), attachments: files });
+    toggleEdit();
   };
 
   return (
@@ -94,7 +102,13 @@ const UserMessage = ({ message, isLast, className, style }) => {
               >
                 取消
               </Button>
-              <Button type="primary">发送</Button>
+              <Button
+                type="primary"
+                onClick={handleSendMessage}
+                disabled={!inputValue.trim() || !isChatCompleted}
+              >
+                发送
+              </Button>
             </>
           ) : (
             <>

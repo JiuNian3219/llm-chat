@@ -44,7 +44,6 @@ const FilePreview = ({ file, close = true }) => {
    */
   const handleCancelUpload = (e) => {
     e.stopPropagation();
-    console.log("取消上传的文件信息:", file);
     handleCancelFileUpload(id, name);
   };
 

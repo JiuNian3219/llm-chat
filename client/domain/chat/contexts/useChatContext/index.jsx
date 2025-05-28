@@ -7,13 +7,27 @@ import { UPLOAD_LIMITS } from "../../const";
 import { BASE_URL } from "@/base/const";
 
 /**
+ * @typedef {Object} SendMessageParams
+ * @property {string} message - 用户输入的消息
+ * @property {Array<File>} [attachments] - 附带的文件列表
+ * @property {Object} [callbacks] - 回调函数
+ * @property {function} [callbacks.onStart] - 成功回调
+ * @property {function} [callbacks.onMessage] - 接收消息的回调函数
+ * @property {function} [callbacks.onCompleted] - 完成消息的回调函数
+ * @property {function} [callbacks.onFollowUp] - 后续建议消息的回调函数
+ * @property {function} [callbacks.onDone] - 完成消息的回调函数
+ * @property {function} [callbacks.onError] - 错误消息的回调函数
+ * @property {string} [conversationId] - 会话ID
+ */
+
+/**
  * @typedef {Object} ChatContextType
  * @property {Object[]} messages - 聊天消息列表
  * @property {Object[]} files - 聊天文件列表
  * @property {string|null} currentChatId - 当前聊天ID
  * @property {string|null} currentConversationId - 当前会话ID
  * @property {boolean} isChatCompleted - 聊天是否已完成
- * @property {function(string, Object=, string=): Promise<void>} handleSendMessage - 发送消息函数
+ * @property {function(SendMessageParams): void} handleSendMessage - 发送消息函数
  * @property {function(Array<File>): void} handleUploadFile - 上传文件函数
  * @property {function(string, string): void} handleCancelFileUpload - 取消文件上传函数
  */
@@ -31,25 +45,33 @@ export const ChatProvider = ({ children }) => {
 
   /**
    * 向AI发送消息
-   * @param {string} message - 用户输入的消息
-   * @param {object} [callbacks] - 回调函数
-   * @param {function} [callbacks.onStart] - 成功回调
-   * @param {function} [callbacks.onMessage] - 接收消息的回调函数
-   * @param {function} [callbacks.onCompleted] - 完成消息的回调函数
-   * @param {function} [callbacks.onFollowUp] - 后续建议消息的回调函数
-   * @param {function} [callbacks.onDone] - 完成消息的回调函数
-   * @param {function} [callbacks.onError] - 错误消息的回调函数
-   * @param {string} [conversationId] - 会话ID
+   * @param {Object} params - 参数对象
+   * @param {string} params.message - 用户输入的消息
+   * @param {Array<File>} [params.attachments] - 附带的文件列表
+   * @param {object} [params.callbacks] - 回调函数
+   * @param {function} [params.callbacks.onStart] - 成功回调
+   * @param {function} [params.callbacks.onMessage] - 接收消息的回调函数
+   * @param {function} [params.callbacks.onCompleted] - 完成消息的回调函数
+   * @param {function} [params.callbacks.onFollowUp] - 后续建议消息的回调函数
+   * @param {function} [params.callbacks.onDone] - 完成消息的回调函数
+   * @param {function} [params.callbacks.onError] - 错误消息的回调函数
+   * @param {string} [params.conversationId] - 会话ID
    */
-  const handleSendMessage = async (message, callbacks, conversationId) => {
-    message = message?.trim();
-    if (!message) return;
+  const handleSendMessage = async ({
+    message,
+    attachments,
+    callbacks,
+    conversationId,
+  }) => {
+    const trimmedMessage = message?.trim();
+    if (!trimmedMessage) return;
+    const messageFiles = attachments || files || [];
     const userMessage = {
       id: crypto.randomUUID(),
       role: "user",
-      content: message,
+      content: trimmedMessage,
       conversationId,
-      files: files
+      files: messageFiles,
     };
 
     setMessages((draft) => {
@@ -68,14 +90,21 @@ export const ChatProvider = ({ children }) => {
       draft.push(aiMessage);
     });
 
-    const contentType = files.length > 0 ? "object_string" : "text";
-    const content = contentType === "object_string" ? generateMultimodalMessage(message, files) : message;
+    const contentType = messageFiles.length > 0 ? "object_string" : "text";
+    const content =
+      contentType === "object_string"
+        ? generateMultimodalMessage(trimmedMessage, messageFiles)
+        : trimmedMessage;
 
     const { onStart, onMessage, onCompleted, onFollowUp, onDone, onError } =
       callbacks || {};
 
     setIsChatCompleted(false);
-    setFiles([]);
+
+    // 如果没有附件，则清空文件列表
+    if (!attachments) {
+      setFiles([]);
+    }
 
     try {
       await server.streamChatByCoze(
@@ -143,7 +172,6 @@ export const ChatProvider = ({ children }) => {
    * @param {Array<File>} files - 要上传的文件
    */
   const handleUploadFile = (files) => {
-    console.log("handleUploadFile", files);
     if (!files || files.length === 0) return;
     if (files.length > UPLOAD_LIMITS.maxFileCount) {
       messageApi.warning("一次最多只能上传10个文件");
@@ -189,7 +217,9 @@ export const ChatProvider = ({ children }) => {
               draft.splice(index, 1);
             }
           });
-          messageApi.error(`文件上传失败: ${name}，${error.message || "请稍后再试"}`);
+          messageApi.error(
+            `文件上传失败: ${name}，${error.message || "请稍后再试"}`
+          );
         });
     });
   };
