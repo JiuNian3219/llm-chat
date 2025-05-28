@@ -16,8 +16,8 @@ import {
  * @param {import('express').Response} res
  */
 export async function nonStreamChatHandler(req, res) {
-  const { conversationId, content, botId } = req.body;
-  const result = await nonStreamChat(content, conversationId, botId);
+  const { content, contentType, conversationId,  botId } = req.body;
+  const result = await nonStreamChat(content, contentType, conversationId, botId);
   respondWithSuccess(res, result);
 }
 
@@ -33,7 +33,7 @@ export async function streamChatHandler(req, res) {
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
 
-  const { content, conversationId, botId } = req.body;
+  const { content, contentType, conversationId, botId } = req.body;
 
   if (!content) {
     res.write(
@@ -45,6 +45,7 @@ export async function streamChatHandler(req, res) {
 
   await streamChat(
     content,
+    contentType || "text",
     {
       onStart: (data) => {
         res.write(

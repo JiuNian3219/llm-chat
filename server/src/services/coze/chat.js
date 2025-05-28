@@ -4,10 +4,11 @@ import { ChatEventType, ChatStatus, RoleType } from "@coze/api";
 /**
  * 执行非流式的聊天请求
  * @param {string} content - 用户输入的内容
+ * @param {import("@coze/api").ContentType} contentType - 内容类型, "text", "object_string"
  * @param {string} [conversationId] - 会话ID
  * @param {string} [botId] - 机器人ID
  */
-export async function nonStreamChat(content, conversationId, botId) {
+export async function nonStreamChat(content, contentType, conversationId, botId) {
   const chatResponse = await client.chat.createAndPoll({
     bot_id: botId || generalBotID,
     conversation_id: conversationId,
@@ -16,7 +17,7 @@ export async function nonStreamChat(content, conversationId, botId) {
       {
         role: RoleType.User,
         content: content,
-        content_type: "text",
+        content_type: contentType,
       },
     ],
   });
@@ -37,6 +38,7 @@ export async function nonStreamChat(content, conversationId, botId) {
 /**
  * 执行流式的聊天请求
  * @param {string} content - 用户输入的内容
+ * @param {import("@coze/api").ContentType} contentType - 内容类型, "text", "object_string"
  * @param {object} callbacks - 回调函数
  * @param {function} [callbacks.onStart] - 开始回调
  * @param {function} [callbacks.onMessage] - 消息回调
@@ -46,7 +48,7 @@ export async function nonStreamChat(content, conversationId, botId) {
  * @param {string} [conversationId] - 会话ID
  * @param {string} [botId] - 机器人ID
  */
-export async function streamChat(content, callbacks, conversationId, botId) {
+export async function streamChat(content, contentType, callbacks, conversationId, botId) {
   const { onStart, onMessage, onCompleted, onDone, onError } = callbacks;
   const chatResponse = await client.chat.stream({
     bot_id: botId || generalBotID,
@@ -56,7 +58,7 @@ export async function streamChat(content, callbacks, conversationId, botId) {
       {
         role: RoleType.User,
         content: content,
-        content_type: "text",
+        content_type: contentType,
       },
     ],
   });
