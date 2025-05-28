@@ -14,12 +14,12 @@
   cursor: pointer;
 }
 
-.file-image {
-  display: none;
-}
-
 .file-title {
+  display: inline-block;
+  max-width: 175px;
   font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .file-preview-box:hover {

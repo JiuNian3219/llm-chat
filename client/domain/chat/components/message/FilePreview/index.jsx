@@ -1,11 +1,12 @@
 import { formatFileSize, getFormattedFileType } from "@/domain/chat/utils";
 import fileIcon from "@/src/assets/file.svg";
 import imageIcon from "@/src/assets/image.svg";
-import { Flex, Image } from "antd";
+import { Flex, Image, Skeleton, Spin, Tooltip } from "antd";
 import styles from "./index.module.css";
 import IconButton from "@/base/components/IconButton";
 import { CloseOutlined } from "@ant-design/icons";
 import { useState } from "react";
+import { useChatContext } from "@/domain/chat/contexts/useChatContext";
 
 /**
  * 文件预览组件，用于展示文件信息和预览图片文件
@@ -14,7 +15,8 @@ import { useState } from "react";
  */
 const FilePreview = ({ file }) => {
   const [imageVisible, setImageVisible] = useState(false);
-  const { name, size, type, url } = file;
+  const { handleCancelFileUpload } = useChatContext();
+  const { id, name, size, type, url, status } = file;
   const isImage = type === "image";
 
   /**
@@ -36,6 +38,15 @@ const FilePreview = ({ file }) => {
     }
   };
 
+  /**
+   * 取消上传文件
+   */
+  const handleCancelUpload = (e) => {
+    e.stopPropagation();
+    console.log("取消上传的文件信息:", file);
+    handleCancelFileUpload(id, name);
+  };
+
   return (
     <Flex
       align="center"
@@ -44,17 +55,28 @@ const FilePreview = ({ file }) => {
       className={`${styles["file-preview-box"]} ${isImage ? styles["file-image-box"] : ""}`}
       onClick={handleOpenImage}
     >
-      <img
-        src={isImage ? imageIcon : fileIcon}
-        width={32}
-        height={32}
-      ></img>
+      {status === "done" ? (
+        <img
+          src={isImage ? imageIcon : fileIcon}
+          width={32}
+          height={32}
+        />
+      ) : (
+        <Spin
+          style={{
+            width: 32,
+          }}
+        />
+      )}
       <Flex vertical>
-        <span className={styles["file-title"]}>{name}</span>
+        <Tooltip title={name}>
+          <span className={styles["file-title"]}>{name}</span>
+        </Tooltip>
         {isImage && (
           <Image
-            className={styles["file-image"]}
             src={url}
+            // 使用className设置display为none会出现问题
+            style={{ display: "none" }}
             preview={{
               visible: imageVisible,
               onVisibleChange: handleImageClick,
@@ -73,9 +95,7 @@ const FilePreview = ({ file }) => {
         icon={<CloseOutlined />}
         size="minuscule"
         className={styles["close-button"]}
-        onClick={(e) => {
-          e.stopPropagation();
-        }}
+        onClick={handleCancelUpload}
       />
     </Flex>
   );
