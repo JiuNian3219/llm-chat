@@ -2,14 +2,20 @@ import { createContext, useContext, useState } from "react";
 import { useImmer } from "use-immer";
 import server from "@/domain/chat/services";
 import { App } from "antd";
+import { generateMultimodalMessage, isImageType } from "../../utils";
+import { UPLOAD_LIMITS } from "../../const";
+import { BASE_URL } from "@/base/const";
 
 /**
  * @typedef {Object} ChatContextType
  * @property {Object[]} messages - 聊天消息列表
+ * @property {Object[]} files - 聊天文件列表
  * @property {string|null} currentChatId - 当前聊天ID
  * @property {string|null} currentConversationId - 当前会话ID
  * @property {boolean} isChatCompleted - 聊天是否已完成
  * @property {function(string, Object=, string=): Promise<void>} handleSendMessage - 发送消息函数
+ * @property {function(Array<File>): void} handleUploadFile - 上传文件函数
+ * @property {function(string, string): void} handleCancelFileUpload - 取消文件上传函数
  */
 
 /** @type {import('react').Context<ChatContextType|null>} */
@@ -17,6 +23,7 @@ export const ChatContext = createContext(null);
 
 export const ChatProvider = ({ children }) => {
   const [messages, setMessages] = useImmer([]);
+  const [files, setFiles] = useImmer([]);
   const [isChatCompleted, setIsChatCompleted] = useState(true);
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const [currentChatId, setCurrentChatId] = useState(null);
@@ -60,14 +67,19 @@ export const ChatProvider = ({ children }) => {
       draft.push(aiMessage);
     });
 
+    const contentType = files.length > 0 ? "object_string" : "text";
+    const content = contentType === "object_string" ? generateMultimodalMessage(message, files) : message;
+
     const { onStart, onMessage, onCompleted, onFollowUp, onDone, onError } =
       callbacks || {};
 
     setIsChatCompleted(false);
+    setFiles([]);
 
     try {
       await server.streamChatByCoze(
-        message,
+        content,
+        contentType,
         {
           onStart: (data) => {
             setCurrentConversationId(data.conversationId);
@@ -119,20 +131,124 @@ export const ChatProvider = ({ children }) => {
         conversationId
       );
     } catch (error) {
-      // TODO: 需要处理系统错误
       setIsChatCompleted(true);
       setCurrentChatId(null);
-      console.error("流式聊天请求错误:", error);
+      messageApi.error("AI对话发生错误，请稍后再试");
     }
+  };
+
+  /**
+   * 上传文件
+   * @param {Array<File>} files - 要上传的文件
+   */
+  const handleUploadFile = (files) => {
+    console.log("handleUploadFile", files);
+    if (!files || files.length === 0) return;
+    if (files.length > UPLOAD_LIMITS.fileSize) {
+      messageApi.warning("一次最多只能上传10个文件");
+      return;
+    }
+
+    const newFiles = files.map((file) => ({
+      id: crypto.randomUUID(),
+      name: file.name,
+      size: file.size,
+      type: isImageType(file.type) ? "image" : "file",
+      status: "uploading",
+      file: file,
+    }));
+
+    setFiles((prevFiles) => [...prevFiles, ...newFiles]);
+
+    newFiles.forEach((fileInfo) => {
+      const { id, name, file } = fileInfo;
+      server
+        .uploadFileByCoze(file)
+        .then((response) => {
+          // 立即更新成功的文件状态
+          const { id: newId, url } = response.data;
+          setFiles((draft) => {
+            const index = draft.findIndex((f) => f.id === id);
+            if (index !== -1) {
+              draft[index] = {
+                ...draft[index],
+                id: newId,
+                status: "done",
+                url: `${BASE_URL}${url}`,
+              };
+            }
+          });
+          messageApi.success(`文件上传成功: ${name}`);
+        })
+        .catch((error) => {
+          // 失败后删除文件并显示错误消息
+          setFiles((draft) => {
+            const index = draft.findIndex((f) => f.id === id);
+            if (index !== -1) {
+              draft.splice(index, 1);
+            }
+          });
+          messageApi.error(`文件上传失败: ${name}，${error.message || "请稍后再试"}`);
+        });
+    });
+  };
+
+  /**
+   * 取消文件上传
+   * @param {string} fileId - 文件ID
+   * @param {string} filename - 文件名
+   */
+  const handleCancelFileUpload = (fileId, filename) => {
+    if (!fileId || !filename) {
+      return;
+    }
+
+    // 查找文件并更新状态
+    setFiles((draft) => {
+      const index = draft.findIndex((f) => f.id === fileId);
+      if (index !== -1) {
+        draft[index].status = "canceling";
+      }
+    });
+
+    server
+      .cancelFileUploadByCoze(fileId, filename)
+      .then((result) => {
+        const { status } = result.data;
+        if (status === "canceled") {
+          // 成功取消后从列表中移除
+          setFiles((draft) => {
+            const index = draft.findIndex((f) => f.id === fileId);
+            if (index !== -1) {
+              draft.splice(index, 1);
+            }
+          });
+        } else {
+          new Error("取消文件上传失败");
+        }
+      })
+      .catch((error) => {
+        // 如果取消失败，恢复文件状态
+        setFiles((draft) => {
+          const index = draft.findIndex((f) => f.id === fileId);
+          if (index !== -1) {
+            draft[index].status = "done";
+          }
+        });
+        messageApi.error(`取消文件上传失败: ${filename}`);
+      });
   };
 
   return (
     <ChatContext.Provider
       value={{
         messages,
+        files,
         currentChatId,
         currentConversationId,
         handleSendMessage,
+        handleUploadFile,
+        handleCancelFileUpload,
         isChatCompleted,
       }}
     >

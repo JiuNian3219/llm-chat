@@ -25,11 +25,22 @@ export async function copyText(text, messageApi) {
  * @returns {string} 文件类型
  */
 export function getFileType(fileName) {
-  if (!fileName || typeof fileName !== 'string') {
+  if (!fileName || typeof fileName !== "string") {
     return "";
   }
-  return fileName.split('.').pop().toLowerCase();
+  return fileName.split(".").pop().toLowerCase();
+}
 
+/**
+ * 判断文件类型是否为图片
+ * @param {string} type - 文件类型
+ * @returns {boolean} 是否为图片类型
+ */
+export function isImageType(type) {
+  if (!type || typeof type !== "string") {
+    return false;
+  }
+  return type.toLocaleLowerCase().startsWith("image/");
 }
 
 /**
@@ -48,7 +59,7 @@ export function getFormattedFileType(fileName) {
  * @returns {string} 转换后的文件大小字符串，保留两位小数
  */
 export function formatFileSize(size) {
-  if (size < 0 || typeof size !== 'number') {
+  if (size < 0 || typeof size !== "number") {
     return "未知大小";
   }
   const units = ["B", "KB", "MB", "GB"];
@@ -60,3 +71,26 @@ export function formatFileSize(size) {
   return `${size.toFixed(2)} ${units[index]}`;
 }
 
+/**
+ * 生成多模态信息
+ * @param {string} text - 文本内容
+ * @param {Array<object>} files - 文件列表
+ * @returns {string} 多模态信息
+ */
+export function generateMultimodalMessage(text, files) {
+  if (!text || (!files || files.length === 0)) {
+    return "";
+  }
+  const messageList = []
+  messageList.push({
+    type: "text",
+    text: text,
+  });
+  for (const file of files) {
+    messageList.push({
+      file_id: file.id,
+      type: file.type,
+    });
+  }
+  return JSON.stringify(messageList)
+}

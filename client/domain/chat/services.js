@@ -7,6 +7,7 @@ const { coze } = api;
 /**
  * 执行流式的聊天请求
  * @param {string} content - 用户输入的内容
+ * @param {string} contentType - 内容类型, "text", "object_string"
  * @param {Object} callbacks - 回调函数
  * @param {Function} [callbacks.onStart] - 开始回调
  * @param {Function} [callbacks.onMessage] - 消息回调
@@ -17,7 +18,7 @@ const { coze } = api;
  * @param {string} [conversationId] - 会话ID
  * @param {string} [botId] - 机器人ID
  */
-function streamChatByCoze(content, callbacks, conversationId, botId) {
+function streamChatByCoze(content, contentType, callbacks, conversationId, botId) {
   try {
     const { onStart, onMessage, onCompleted, onFollowUp, onDone, onError } = callbacks;
     if (!content) {
@@ -30,6 +31,7 @@ function streamChatByCoze(content, callbacks, conversationId, botId) {
       method,
       body: JSON.stringify({
         content,
+        contentType,
         conversationId,
         botId,
       }),
@@ -81,11 +83,12 @@ function streamChatByCoze(content, callbacks, conversationId, botId) {
 /**
  * 执行非流式的聊天请求
  * @param {string} content - 用户输入的内容
+ * @param {string} contentType - 内容类型, "text", "object_string"
  * @param {string} [conversationId] - 会话ID
  * @param {string} [botId] - 机器人ID
  * @returns
  */
-function nonStreamChatByCoze(content, conversationId, botId) {
+function nonStreamChatByCoze(content, contentType, conversationId, botId) {
   if (!content) {
     return Promise.reject(new Error("content不能为空"));
   }
@@ -94,6 +97,7 @@ function nonStreamChatByCoze(content, conversationId, botId) {
     method,
     data: {
       content,
+      contentType,
       conversationId,
       botId,
     },
@@ -120,8 +124,50 @@ function cancelChatByCoze(conversationId, chatId) {
   });
 }
 
+/**
+ * 上传文件
+ * @param {File} file - 文件对象
+ */
+function uploadFileByCoze(file) {
+  if (!file) {
+    return Promise.reject(new Error("file不能为空"));
+  }
+  const { url, method } = coze.upload;
+  const formData = new FormData();
+  formData.append("file", file);
+  
+  return request(url, {
+    method,
+    data: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    },
+  });
+}
+
+/**
+ * 取消文件上传
+ * @param {string} fileId - 文件ID
+ * @param {string} filename - 文件名
+ */
+function cancelFileUploadByCoze(fileId, filename) {
+  if (!fileId || !filename) {
+    return Promise.reject(new Error("fileId和filename不能为空"));
+  }
+  const { url, method } = coze.cancelUpload;
+  return request(url, {
+    method,
+    data: {
+      fileId,
+      filename,
+    },
+  });
+}
+
 export default {
   streamChatByCoze,
   nonStreamChatByCoze,
   cancelChatByCoze,
+  uploadFileByCoze,
+  cancelFileUploadByCoze,
 };

@@ -17,5 +17,13 @@ export default {
       url: `${COZE_BASE}/chat/cancel`,
       method: "POST",
     },
+    upload: {
+      url: `${COZE_BASE}/upload`,
+      method: "POST",
+    },
+    cancelUpload: {
+      url: `${COZE_BASE}/cancelUpload`,
+      method: "POST",
+    },
   },
 };
