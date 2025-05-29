@@ -18,7 +18,7 @@ import FileQueue from "../../structure/FileQueue";
 const AIInputPanel = ({ className, style }) => {
   const options = [{ value: "LLM", label: "LLM Chat" }];
   const [message, setMessage] = useState("");
-  const { sendStreamMessage, cancelCurrentStream, isChatCompleted, files } =
+  const { sendStreamMessage, cancelCurrentStream, isChatCompleted, files, currentChatId } =
     useChatContext();
 
   const handleSendMessage = () => {
@@ -74,6 +74,7 @@ const AIInputPanel = ({ className, style }) => {
               )
             }
             onClick={isChatCompleted ? handleSendMessage : cancelCurrentStream}
+            loading={!currentChatId && !isChatCompleted}
             type="primary"
           />
         </Flex>
