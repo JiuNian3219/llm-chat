@@ -1,9 +1,10 @@
 import cors from "cors";
 import express from "express";
-import coze from "./routers/coze.js";
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
 import fs from "fs";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
+import coze from "./routers/coze.js";
+import { errorHandler } from "./middleware/errorHandler.js";
 
 const app = express();
 const port = 3001;
@@ -28,6 +29,9 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 app.use('/files', express.static(join(__dirname, "../uploads")));
+
+// 全局的错误处理器
+app.use(errorHandler);
 
 app.listen(port, () => {
   console.log(`Express服务器运行在 http://localhost:${port}`);

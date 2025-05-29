@@ -5,7 +5,7 @@
  * @param {string} [msg]
  * @param {number} [code=200]
  */
-export function respondWithSuccess(res, data, msg, code = 200) {
+export function success(res, data, msg, code = 200) {
   res.status(code).json({
     code: code,
     msg: msg || "",
@@ -20,7 +20,7 @@ export function respondWithSuccess(res, data, msg, code = 200) {
  * @param {number} [code=500]
  * @returns
  */
-export function respondWithError(res, msg, code = 500) {
+export function error(res, msg, code = 500) {
   res.status(code).json({
     code: code,
     msg: msg || "服务器错误，请稍后再试",
