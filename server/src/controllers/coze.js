@@ -6,8 +6,13 @@ import {
 } from "../services/coze/chat.js";
 import { cancelFileUpload, uploadFile } from "../services/coze/upload.js";
 import {
+  getConversation,
+  getConversationsWithPagination,
+} from "../services/database/conversation.js";
+import {
   CustomError,
   FileUploadError,
+  NotFoundError,
   ValidationError,
 } from "../utils/error.js";
 import { error, success } from "../utils/response.js";
@@ -161,4 +166,67 @@ export const cancelFileUploadHandler = asyncHandler(async (req, res) => {
       result?.message || "取消文件上传失败，请稍后再试"
     );
   }
+});
+
+/**
+ * 获取会话列表
+ * @type {import('express').RequestHandler}
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export const getConversationsHandler = asyncHandler(async (req, res) => {
+  const { page = 1, pageSize = 15 } = req.query;
+  const pageNum = parseInt(page, 10);
+  const pageSizeNum = parseInt(pageSize, 10);
+  // 验证页码和每页大小
+  if (isNaN(pageNum) || isNaN(pageSizeNum) || pageNum < 1 || pageSizeNum < 1) {
+    throw new Error(`页码和每页大小异常, page: ${page}, pageSize: ${pageSize}`);
+  }
+  // 每页最大限制为100
+  const validPageSize = Math.min(pageSizeNum, 100);
+  const result = await getConversationsWithPagination(
+    parseInt(pageSize, 10),
+    parseInt(page, 10)
+  );
+  success(res, {
+    ...result,
+    page: pageNum,
+    pageSize: validPageSize,
+  });
+});
+
+/**
+ * 获取会话标题
+ * @type {import('express').RequestHandler}
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export const getConversationTitleHandler = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  if (!id) {
+    throw new Error("会话ID不能为空");
+  }
+  const conversation = await getConversation(id, false);
+  if (!conversation) {
+    throw new NotFoundError("会话不存在");
+  }
+  success(res, { title: conversation.title });
+});
+
+/**
+ * 获取会话详情
+ * @type {import('express').RequestHandler}
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export const getConversationHandler = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  if (!id) {
+    throw new Error("会话ID不能为空");
+  }
+  const conversation = await getConversation(id, true);
+  if (!conversation) {
+    throw new NotFoundError("会话不存在");
+  }
+  success(res, { conversation });
 });

@@ -2,6 +2,9 @@ import express from "express";
 import {
   cancelChatHandler,
   cancelFileUploadHandler,
+  getConversationHandler,
+  getConversationsHandler,
+  getConversationTitleHandler,
   nonStreamChatHandler,
   streamChatHandler,
   uploadFileHandler,
@@ -20,5 +23,11 @@ router.post("/chat/cancel", cancelChatHandler);
 router.post("/upload", uploadMiddleware, uploadFileHandler);
 
 router.post("/cancelUpload", cancelFileUploadHandler);
+
+router.get("/conversation/list", getConversationsHandler);
+
+router.get("/conversation/:id", getConversationHandler);
+
+router.get("/conversation/:id/title", getConversationTitleHandler);
 
 export default router;

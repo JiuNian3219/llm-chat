@@ -35,6 +35,23 @@ export const getConversations = async (pageSize = 15, page = 1) => {
 };
 
 /**
+ * 获取分页的会话列表
+ * @param {number} pageSize - 每页大小
+ * @param {number} page - 页码
+ * @returns
+ */
+export const getConversationsWithPagination = async (pageSize = 15, page = 1) => {
+  const conversations = await getConversations(pageSize, page);  
+  const totalCount = await Conversation.countDocuments({});
+  
+  return {
+    conversations,
+    totalCount,
+    totalPages: Math.ceil(totalCount / pageSize),
+  };
+}
+
+/**
  * 获取会话详情
  * @param {string} conversationId - 会话ID
  * @param {boolean} [populateMessages=false] - 是否填充消息
