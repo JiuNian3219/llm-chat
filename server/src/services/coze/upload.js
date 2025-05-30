@@ -1,77 +1,58 @@
-import { createReadStream, rename, unlink } from "fs";
+import { createReadStream } from "fs";
+import { join } from "path";
+import { FileUploadError } from "../../utils/error.js";
+import { getUploadsDir, isImageFile } from "../../utils/file.js";
+import { createFileRecord, deleteFileRecord } from "../database/file.js";
 import { client } from "./client.js";
-import { dirname, join } from "path";
-import { fileURLToPath } from "url";
-
-/**
- * @typedef {Object} File
- * @property {string} filename - 文件名
- * @property {string} originalname - 原始文件名
- * @property {number} size - 文件大小
- * @property {string} path - 文件路径
- */
 
 /**
  * 上传文件到 Coze
- * @param {File} file - 文件对象
+ * @param {Express.Multer.File} file - 文件对象
+ * @param {string} conversationId - 会话ID
  * @returns
  */
-export const uploadFile = async (file) => {
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = dirname(__filename);
-  const filePath = join(__dirname, "../../../uploads", file.filename);
+export const uploadFile = async (file, conversationId) => {
+  if (!file || !conversationId) {
+    throw new FileUploadError();
+  }
+  const filePath = join(getUploadsDir(), file.filename);
   const fileBuffer = await createReadStream(filePath);
   const fileObj = await client.files.upload({ file: fileBuffer });
-  // 文件后缀
-  const fileExt = file.filename.split('.').pop();
-  const newPath = join(
-    __dirname,
-    "../../../uploads",
-    fileObj.id + "." + fileExt
-  );
 
-  // 重命名文件
-  await new Promise((resolve, reject) => {
-    rename(filePath, newPath, (err) => {
-      if (err) reject(err);
-      else resolve();
-    });
+  createFileRecord({
+    fileId: fileObj.id,
+    originalname: file.originalname,
+    filename: file.filename,
+    mimetype: file.mimetype,
+    size: file.size,
+    conversationId: conversationId,
+    isImage: isImageFile(file.mimetype),
+    url: `/files/${file.filename}`,
   });
 
   return {
     id: fileObj.id,
     originalname: file.originalname,
     size: file.size,
-    url: `/files/${fileObj.id}.${fileExt}`,
+    url: `/files/${file.filename}`,
   };
 };
 
 /**
  * 取消文件上传
  * @param {string} fileId - 文件ID
- * @param {string} filename - 文件路径
  * @returns
  */
-export const cancelFileUpload = async (fileId, filename) => {
-  // 在 uploads 目录中删除文件
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = dirname(__filename);
-  const fileExt = filename.split('.').pop();
-  const filePath = join(__dirname, "../../../uploads", fileId + "." + fileExt);
+export const cancelFileUpload = async (fileId) => {
   try {
-    await new Promise((resolve, reject) => {
-      unlink(filePath, (err) => {
-        if (err) {
-          if (err.code === "ENOENT") {
-            // 文件不存在，直接返回成功
-            return resolve();
-          }
-          reject(err);
-        } else resolve();
-      });
+    await deleteFileRecord(fileId).catch((error) => {
+      if (error.message !== "文件不存在") {
+        throw error;
+      }
     });
     return { status: "canceled" };
   } catch (error) {
-    return { status: "error", message: error.message };
+    console.error("取消文件上传失败:", error);
+    return { status: "error", message: "文件上传失败" };
   }
 };

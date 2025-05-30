@@ -1,3 +1,4 @@
+import { asyncHandler } from "../middleware/errorHandler.js";
 import {
   cancelChat,
   nonStreamChat,
@@ -5,9 +6,12 @@ import {
 } from "../services/coze/chat.js";
 import { cancelFileUpload, uploadFile } from "../services/coze/upload.js";
 import {
-  respondWithError,
-  respondWithSuccess,
-} from "../utils/responseFormatter.js";
+  CustomError,
+  FileUploadError,
+  ValidationError,
+} from "../utils/error.js";
+import { error, success } from "../utils/response.js";
+import { sendSSEError, sendSSEMessage, setupSSE } from "../utils/sse.js";
 
 /**
  * 处理非流式聊天请求
@@ -15,11 +19,14 @@ import {
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  */
-export async function nonStreamChatHandler(req, res) {
-  const { content, contentType, conversationId,  botId } = req.body;
-  const result = await nonStreamChat(content, contentType, conversationId, botId);
-  respondWithSuccess(res, result);
-}
+export const nonStreamChatHandler = asyncHandler(async (req, res) => {
+  const { content, contentType, conversationId } = req.body;
+  if (!content) {
+    throw new ValidationError("内容不能为空");
+  }
+  const result = await nonStreamChat(content, contentType, conversationId);
+  success(res, result);
+});
 
 /**
  * 处理流式聊天请求
@@ -27,71 +34,69 @@ export async function nonStreamChatHandler(req, res) {
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  */
-export async function streamChatHandler(req, res) {
-  // 设置响应头
-  res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection", "keep-alive");
-
-  const { content, contentType, conversationId, botId } = req.body;
+export const streamChatHandler = asyncHandler(async (req, res) => {
+  const { content, contentType, conversationId } = req.body;
 
   if (!content) {
-    res.write(
-      `data: ${JSON.stringify({ type: "error", error: "提问内容不能为空" })}\n\n`
-    );
-    res.end();
-    return;
+    throw new ValidationError("内容不能为空");
   }
 
-  await streamChat(
-    content,
-    contentType || "text",
-    {
-      onStart: (data) => {
-        res.write(
-          `data: ${JSON.stringify({ type: "start", conversationId: data.conversation_id, chatId: data.id })}\n\n`
-        );
+  // 设置响应头
+  setupSSE(res);
+
+  try {
+    await streamChat(
+      content,
+      contentType || "text",
+      {
+        onStart: (data) => {
+          sendSSEMessage(res, {
+            type: "start",
+            conversationId: data.conversation_id,
+          });
+        },
+        onMessage: (data) => {
+          let reasoningContent = data.reasoning_content;
+          if (reasoningContent) {
+            sendSSEMessage(res, {
+              type: "reasoning",
+              content: reasoningContent,
+            });
+          } else {
+            sendSSEMessage(res, {
+              type: "message",
+              content: data.content,
+              chatId: data.chat_id,
+            });
+          }
+        },
+        onCompleted: (data) => {
+          const { role, type } = data;
+          if (role === "assistant" && type === "follow_up") {
+            sendSSEMessage(res, { type: "follow_up", content: data.content });
+          } else {
+            sendSSEMessage(res, { type: "completed", content: data.content });
+          }
+        },
+        onDone: (data) => {
+          sendSSEMessage(res, { type: "done", content: data.content });
+          res.end();
+        },
+        onError: (error) => {
+          sendSSEError(res, error.msg || "对话服务暂时不可用");
+        },
       },
-      onMessage: (data) => {
-        let reasoningContent = data.reasoning_content;
-        if (reasoningContent) {
-          res.write(
-            `data: ${JSON.stringify({ type: "reasoning", content: reasoningContent })}\n\n`
-          );
-        } else {
-          res.write(
-            `data: ${JSON.stringify({ type: "message", content: data.content })}\n\n`
-          );
-        }
-      },
-      onCompleted: (data) => {
-        const { role, type } = data;
-        if (role === "assistant" && type === "follow_up") {
-          res.write(
-            `data: ${JSON.stringify({ type: "follow_up", content: data.content })}\n\n`
-          );
-        } else {
-          res.write(
-            `data: ${JSON.stringify({ type: "completed", content: data.content })}\n\n`
-          );
-        }
-      },
-      onDone: (data) => {
-        res.write(
-          `data: ${JSON.stringify({ type: "done", content: data.content })}\n\n`
-        );
-      },
-      onError: (error) => {
-        res.write(
-          `data: ${JSON.stringify({ type: "error", error: error.msg })}\n\n`
-        );
-      },
-    },
-    conversationId,
-    botId
-  );
-  res.end();
-}
+      conversationId
+    );
+  } catch (error) {
+    // 如果响应未开始，则返回JSON格式的错误，开始后使用SSE发送错误
+    if (!res.headersSent) {
+      throw error;
+    } else {
+      sendSSEError(res, error.message || "对话服务暂时不可用");
+    }
+  }
+});
 
 /**
  * 处理取消聊天请求
@@ -99,19 +104,21 @@ export async function streamChatHandler(req, res) {
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  */
-export async function cancelChatHandler(req, res) {
+export const cancelChatHandler = asyncHandler(async (req, res) => {
   const { chatId, conversationId } = req.body;
   if (!chatId || !conversationId) {
-    respondWithError(res, "缺少参数");
-    return;
+    throw new Error(
+      `缺少聊天ID或会话ID, chatId：${chatId}, conversationId：${conversationId}`
+    );
   }
   const result = await cancelChat(chatId, conversationId);
   if (result.status === "canceled") {
-    respondWithSuccess(res, result);
+    success(res, result);
   } else {
-    respondWithError(res, result?.last_error?.msg || "取消失败，请稍后再试");
+    console.error("取消聊天失败:", result?.last_error?.msg || "未知错误");
+    throw new CustomError("取消聊天失败，请稍后再试");
   }
-}
+});
 
 /**
  * 处理上传文件请求
@@ -121,23 +128,18 @@ export async function cancelChatHandler(req, res) {
  */
 export async function uploadFileHandler(req, res) {
   const { file } = req;
+  const { conversationId } = req.body;
   // 检查是否有文件上传
   if (!file) {
-    respondWithError(res, "没有上传的文件", 400);
+    error(res, "没有上传的文件", 400);
     return;
   }
-  const fileInfo = {
-    filename: file.filename,
-    originalname: file.originalname,
-    size: file.size,
-    path: file.filename,
+  // 检查会话ID是否存在
+  if (!conversationId) {
+    throw new Error("会话ID不能为空");
   }
-  try {
-    const fileObj = await uploadFile(fileInfo);
-    respondWithSuccess(res, fileObj);
-  } catch (error) {
-    respondWithError(res, error.message || "文件上传失败", 500);
-  }
+  const fileObj = await uploadFile(file, conversationId);
+  success(res, fileObj);
 }
 
 /**
@@ -146,16 +148,17 @@ export async function uploadFileHandler(req, res) {
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  */
-export async function cancelFileUploadHandler(req, res) {
-  const { fileId, filename } = req.body;
-  if (!fileId || !filename) {
-    respondWithError(res, "缺少文件ID", 400);
-    return;
+export const cancelFileUploadHandler = asyncHandler(async (req, res) => {
+  const { fileId } = req.body;
+  if (!fileId) {
+    throw new Error("文件ID不能为空");
   }
-  const result = await cancelFileUpload(fileId, filename);
+  const result = await cancelFileUpload(fileId);
   if (result.status === "canceled") {
-    respondWithSuccess(res, result);
+    success(res, result);
   } else {
-    respondWithError(res, result?.message || "取消文件上传失败，请稍后再试", 500);
+    throw new FileUploadError(
+      result?.message || "取消文件上传失败，请稍后再试"
+    );
   }
-}
+});

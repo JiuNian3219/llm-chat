@@ -27,3 +27,21 @@ export class ValidationError extends AppError {
     super(message, 400);
   }
 }
+
+/**
+ * 文件上传错误
+ */
+export class FileUploadError extends AppError {
+  constructor(message = '文件上传失败') {
+    super(message, 400);
+  }
+}
+
+/**
+ * 其他类型自定义错误
+ */
+export class CustomError extends AppError {
+  constructor(message, statusCode = 500) {
+    super(message, statusCode);
+  }
+}
