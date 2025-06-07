@@ -6,6 +6,7 @@ import {
 } from "../services/coze/chat.js";
 import { cancelFileUpload, uploadFile } from "../services/coze/upload.js";
 import {
+  getAllConversations,
   getConversation,
   getConversationsWithPagination,
 } from "../services/database/conversation.js";
@@ -133,17 +134,12 @@ export const cancelChatHandler = asyncHandler(async (req, res) => {
  */
 export async function uploadFileHandler(req, res) {
   const { file } = req;
-  const { conversationId } = req.body;
   // 检查是否有文件上传
   if (!file) {
     error(res, "没有上传的文件", 400);
     return;
   }
-  // 检查会话ID是否存在
-  if (!conversationId) {
-    throw new Error("会话ID不能为空");
-  }
-  const fileObj = await uploadFile(file, conversationId);
+  const fileObj = await uploadFile(file);
   success(res, fileObj);
 }
 
@@ -169,13 +165,28 @@ export const cancelFileUploadHandler = asyncHandler(async (req, res) => {
 });
 
 /**
- * 获取会话列表
+ * 获取所有会话列表
  * @type {import('express').RequestHandler}
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  */
 export const getConversationsHandler = asyncHandler(async (req, res) => {
-  const { page = 1, pageSize = 15 } = req.query;
+  const conversations = await getAllConversations();
+  if (!conversations || conversations.length === 0) {
+    success(res, { conversations: [] });
+  } else {
+    success(res, { conversations });
+  }
+});
+
+/**
+ * 获取会话列表，支持分页
+ * @type {import('express').RequestHandler}
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export const getConversationsWithPaginationHandler = asyncHandler(async (req, res) => {
+  const { pageSize = 20, page = 1 } = req.query;
   const pageNum = parseInt(page, 10);
   const pageSizeNum = parseInt(pageSize, 10);
   // 验证页码和每页大小

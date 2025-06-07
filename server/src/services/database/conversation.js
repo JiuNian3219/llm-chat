@@ -1,7 +1,6 @@
 import Conversation from "../../models/conversation.js";
 import Message from "../../models/message.js";
 import { NotFoundError } from "../../utils/error.js";
-import { deleteFilesByConversationId } from "./file.js";
 import { getMessagesByConversationId } from "./message.js";
 
 /**
@@ -20,12 +19,21 @@ export const createConversation = async (conversationId, title) => {
 };
 
 /**
+ * 获取所有的会话列表
+ * @returns
+ */
+export const getAllConversations = async () => {
+  const conversations = await Conversation.find({}).sort({ updatedAt: -1 }).lean();
+  return conversations;
+}
+
+/**
  * 获取会话列表
  * @param {number} pageSize - 每页大小
  * @param {number} page - 页码
  * @returns
  */
-export const getConversations = async (pageSize = 15, page = 1) => {
+export const getConversations = async (pageSize = 20, page = 1) => {
   const conversations = await Conversation.find({})
     .sort({ updatedAt: -1 })
     .skip((page - 1) * pageSize)
@@ -40,16 +48,19 @@ export const getConversations = async (pageSize = 15, page = 1) => {
  * @param {number} page - 页码
  * @returns
  */
-export const getConversationsWithPagination = async (pageSize = 15, page = 1) => {
-  const conversations = await getConversations(pageSize, page);  
+export const getConversationsWithPagination = async (
+  pageSize = 20,
+  page = 1
+) => {
+  const conversations = await getConversations(pageSize, page);
   const totalCount = await Conversation.countDocuments({});
-  
+
   return {
     conversations,
     totalCount,
     totalPages: Math.ceil(totalCount / pageSize),
   };
-}
+};
 
 /**
  * 获取会话详情
@@ -106,7 +117,17 @@ export const deleteConversation = async (conversationId) => {
   }
   // 删除相关消息
   await Message.deleteMany({ conversationId });
-  // 删除相关文件
-  await deleteFilesByConversationId(conversationId);
   return true;
+};
+
+/**
+ * 更新会话时间戳
+ * @param {string} conversationId - 会话ID
+ */
+export const updateConversationTimestamp = async (conversationId) => {
+  // 什么都不改变，只是更新mongodb的updatedAt字段
+  await Conversation.updateOne(
+    { conversationId },
+    { $currentDate: { updatedAt: true } }
+  );
 };

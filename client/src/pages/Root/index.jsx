@@ -1,9 +1,11 @@
-import { MessageTwoTone } from "@ant-design/icons";
-import { ConfigProvider, Flex, Layout, Typography } from "antd";
+import { ChatProvider } from "@/domain/chat/contexts/useChatContext";
+import { ConfigProvider, Layout, Typography } from "antd";
 import { Outlet } from "react-router-dom";
 import styles from "./index.module.css";
-import { ChatProvider } from "@/domain/chat/contexts/useChatContext";
-const { Header, Content, Sider } = Layout;
+import Sidebar from "@/src/layout/Sidebar";
+import { ConversationProvider } from "@/domain/chat/contexts/useConversationContext";
+import HeaderCard from "@/src/layout/HeaderCard";
+const { Header, Content } = Layout;
 
 const { Title } = Typography;
 
@@ -28,42 +30,23 @@ const Root = () => {
         },
       }}
     >
-      <Layout hasSider style={{
-        height: "100vh"
-      }}>
-        <Sider
-          width="300px"
-          className={styles["sider"]}
-        >
-          <Flex
-            justify="center"
-            align="center"
-            className={styles["logo-flex"]}
-          >
-            <MessageTwoTone className={styles["logo"]} />
-            <Title
-              level={3}
-              className={styles["logo-title"]}
-            >
-              LLM Chat
-            </Title>
-          </Flex>
-        </Sider>
-        <Layout>
-          <Header className={styles["header"]}>
-            <Title
-              level={4}
-              className={styles["header-title"]}
-            >
-              关闭搜狗输入法Ctrl+Space快捷键
-            </Title>
-          </Header>
-          <Content>
-            <ChatProvider>
-              <Outlet />
-            </ChatProvider>
-          </Content>
-        </Layout>
+      <Layout
+        hasSider
+        style={{
+          height: "100vh",
+        }}
+      >
+        <ConversationProvider>
+          <Sidebar />
+          <Layout>
+            <HeaderCard />
+            <Content>
+              <ChatProvider>
+                <Outlet />
+              </ChatProvider>
+            </Content>
+          </Layout>
+        </ConversationProvider>
       </Layout>
     </ConfigProvider>
   );

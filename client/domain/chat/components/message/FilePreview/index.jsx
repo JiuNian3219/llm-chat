@@ -7,6 +7,7 @@ import IconButton from "@/base/components/IconButton";
 import { CloseOutlined } from "@ant-design/icons";
 import { useState } from "react";
 import { useChatContext } from "@/domain/chat/contexts/useChatContext";
+import ImageFailedIcon from "@/src/assets/image-failed.svg";
 
 /**
  * 文件预览组件，用于展示文件信息和预览图片文件
@@ -47,6 +48,7 @@ const FilePreview = ({ file, close = true }) => {
     cancelFileUpload(id, name);
   };
 
+
   return (
     <Flex
       align="center"
@@ -77,6 +79,7 @@ const FilePreview = ({ file, close = true }) => {
             src={url}
             // 使用className设置display为none会出现问题
             style={{ display: "none" }}
+            fallback={ImageFailedIcon}
             preview={{
               visible: imageVisible,
               onVisibleChange: handleImageClick,

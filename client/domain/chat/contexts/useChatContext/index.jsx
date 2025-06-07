@@ -1,10 +1,14 @@
-import { createContext, useContext, useRef, useState } from "react";
-import { useImmer } from "use-immer";
 import server from "@/domain/chat/services";
 import { App } from "antd";
-import { generateMultimodalMessage, isImageType } from "../../utils";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { useImmer } from "use-immer";
 import { UPLOAD_LIMITS } from "../../const";
-import { BASE_URL } from "@/base/const";
+import {
+  formatServerMessages,
+  generateMultimodalMessage,
+  isImageType,
+} from "../../utils";
+import { useConversationContext } from "../useConversationContext";
 
 /**
  * @typedef {Object} SendMessageParams
@@ -27,10 +31,14 @@ import { BASE_URL } from "@/base/const";
  * @property {string|null} currentChatId - 当前聊天ID
  * @property {string|null} currentConversationId - 当前会话ID
  * @property {boolean} isChatCompleted - 聊天是否已完成
+ * @property {boolean} isLoadingMessages - 是否正在加载消息
+ * @property {boolean} isFirst - 是否是第一次发送消息
  * @property {function(SendMessageParams): void} sendStreamMessage - 发送流式消息函数
  * @property {function(): Promise<void>} cancelCurrentStream - 取消当前流式对话函数
  * @property {function(Array<File>): void} uploadFiles - 处理文件上传函数
  * @property {function(string, string): void} cancelFileUpload - 取消文件上传函数
+ * @property {function(): void} initializeChatProvider - 初始化聊天提供者函数
+ * @property {function(boolean): void} handleFirstChange - 处理第一次发送消息的逻辑
  */
 
 /** @type {import('react').Context<ChatContextType|null>} */
@@ -39,11 +47,41 @@ export const ChatContext = createContext(null);
 export const ChatProvider = ({ children }) => {
   const [messages, setMessages] = useImmer([]);
   const [files, setFiles] = useImmer([]);
+  // 是否是在会话第一次发送信息
+  const [isFirst, setIsFirst] = useState(false);
   const [isChatCompleted, setIsChatCompleted] = useState(true);
-  const [currentConversationId, setCurrentConversationId] = useState(null);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [currentChatId, setCurrentChatId] = useState(null);
   const { message: messageApi } = App.useApp();
   const cancelStreamRef = useRef(null);
+  const { addNewConversation, currentConversationId } =
+    useConversationContext();
+
+  /**
+   * 加载会话消息
+   * @param {string} conversationId - 会话ID
+   */
+  const loadConversationMessages = async (conversationId) => {
+    // 如果是在新会话中第一次发送消息，则不加载会话消息
+    if (isFirst) return;
+    resetChatState();
+    if (!conversationId) return;
+
+    try {
+      setIsLoadingMessages(true);
+      const response = await server.getConversationDetail(conversationId);
+      const { conversation } = response.data;
+      const { messages: serverMessages } = conversation;
+
+      setMessages(formatServerMessages(serverMessages));
+    } catch (error) {
+      console.error("获取会话消息失败:", error);
+      messageApi.error("获取会话消息失败，请稍后再试");
+      setMessages([]);
+    } finally {
+      setIsLoadingMessages(false);
+    }
+  };
 
   /**
    * 向AI发送消息
@@ -116,18 +154,22 @@ export const ChatProvider = ({ children }) => {
         contentType,
         {
           onStart: (data) => {
-            setCurrentConversationId(data.conversationId);
-            setCurrentChatId(data.chatId);
-            // 更新AI消息的ChatID
-            setMessages((draft) => {
-              const index = draft.findIndex((item) => item.id === aiMessage.id);
-              if (index !== -1) {
-                draft[index].chatId = data.chatId;
-              }
-            });
+            // 添加新的会话到会话列表
+            addNewConversation(data.conversationId, "新对话");
             onStart?.(data);
           },
           onMessage: (data) => {
+            if (data.chatId !== currentChatId) {
+              setCurrentChatId(data.chatId);
+              setMessages((draft) => {
+                const index = draft.findIndex(
+                  (item) => item.id === aiMessage.id
+                );
+                if (index !== -1) {
+                  draft[index].chatId = data.chatId;
+                }
+              });
+            }
             setMessages((draft) => {
               const index = draft.findIndex((item) => item.id === aiMessage.id);
               if (index !== -1) {
@@ -162,24 +204,37 @@ export const ChatProvider = ({ children }) => {
             }, 1000);
             // 清除取消流函数
             cancelStreamRef.current = null;
+            handleFirstChange(false);
             onDone?.(data);
           },
           onError: (error) => {
             cancelStreamRef.current = null;
             setIsChatCompleted(true);
             setCurrentChatId(null);
+            handleFirstChange(false);
             messageApi.error("AI对话发生错误，请稍后再试");
             onError?.(error);
           },
         },
-        conversationId
+        currentConversationId
       );
     } catch (error) {
       cancelStreamRef.current = null;
       setIsChatCompleted(true);
       setCurrentChatId(null);
+      handleFirstChange(false);
       messageApi.error("AI对话发生错误，请稍后再试");
     }
+  };
+
+  /**
+   * 重设此ChatProvider，不清除文件列表
+   */
+  const resetChatState = () => {
+    setMessages(() => []);
+    setIsChatCompleted(true);
+    setCurrentChatId(null);
+    cancelStreamRef.current = null;
   };
 
   /**
@@ -240,7 +295,7 @@ export const ChatProvider = ({ children }) => {
     newFiles.forEach((fileInfo) => {
       const { id, name, file } = fileInfo;
       server
-        .uploadFileByCoze(file)
+        .uploadFileByCoze(file, currentConversationId)
         .then((response) => {
           // 立即更新成功的文件状态
           const { id: newId, url } = response.data;
@@ -251,7 +306,7 @@ export const ChatProvider = ({ children }) => {
                 ...draft[index],
                 id: newId,
                 status: "done",
-                url: `${BASE_URL}${url}`,
+                url: url,
               };
             }
           });
@@ -318,6 +373,18 @@ export const ChatProvider = ({ children }) => {
       });
   };
 
+  /**
+   * 处理第一次发送消息的逻辑
+   * @param {boolean} isFirst - 是否是第一次发送消息
+   */
+  const handleFirstChange = (isFirst) => {
+    setIsFirst(isFirst);
+  }
+
+  useEffect(() => {
+    loadConversationMessages(currentConversationId);
+  }, [currentConversationId]);
+
   return (
     <ChatContext.Provider
       value={{
@@ -325,11 +392,15 @@ export const ChatProvider = ({ children }) => {
         files,
         currentChatId,
         currentConversationId,
+        isChatCompleted,
+        isLoadingMessages,
+        isFirst,
         sendStreamMessage,
         cancelCurrentStream,
         uploadFiles,
         cancelFileUpload,
-        isChatCompleted,
+        initializeChatProvider: resetChatState,
+        handleFirstChange,
       }}
     >
       {children}

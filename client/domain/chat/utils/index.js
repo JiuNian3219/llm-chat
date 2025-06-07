@@ -78,19 +78,60 @@ export function formatFileSize(size) {
  * @returns {string} 多模态信息
  */
 export function generateMultimodalMessage(text, files) {
-  if (!text || (!files || files.length === 0)) {
+  if (!text || !files || files.length === 0) {
     return "";
   }
-  const messageList = []
-  messageList.push({
-    type: "text",
-    text: text,
-  });
+  const messageList = [];
   for (const file of files) {
     messageList.push({
       file_id: file.id,
       type: file.type,
     });
   }
-  return JSON.stringify(messageList)
+  messageList.push({
+    type: "text",
+    text: text,
+  });
+  return JSON.stringify(messageList);
+}
+
+/**
+ * 格式化服务器对话信息
+ * @param {Array<object>} messages - 服务器返回的对话信息列表
+ * @returns
+ */
+export function formatServerMessages(messages) {
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return [];
+  }
+  return messages.map((message) => {
+    const { role, contentType, content, files, followUps } = message;
+    const newMessage = {
+      id: message._id,
+      chatId: message.chatId,
+      role,
+      content,
+      followUps,
+      isLoading: false,
+      isCancel: false,
+      files: [],
+    };
+    if (contentType === "object_string" && content) {
+      const parsedContent = JSON.parse(content).filter(
+        (item) => item.type == "text"
+      );
+      newMessage.content =
+        parsedContent.length > 0 ? parsedContent[0].text : "";
+      newMessage.files = files.map((file) => ({
+        id: file.fileId,
+        name: file.originalname,
+        size: file.size,
+        // @ts-ignore
+        url: `${import.meta.env.VITE_API_BASE_URL || ""}${file.url}`,
+        type: file.isImage ? "image" : "file",
+        status: "done",
+      }));
+    }
+    return newMessage;
+  });
 }

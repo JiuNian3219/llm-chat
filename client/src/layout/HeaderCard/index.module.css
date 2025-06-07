@@ -1,0 +1,12 @@
+.header-title {
+  text-align: center;
+  margin: 0 auto;
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  display: flex;
+  justify-self: center;
+  align-items: center;
+}

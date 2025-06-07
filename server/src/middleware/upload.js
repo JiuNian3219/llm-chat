@@ -7,10 +7,10 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     // 生成唯一的文件名，避免文件覆盖
-    const uniqueSuffix =
-      Date.now() + "-" + crypto.randomUUID();
-    const fileExt = file.originalname.split('.').pop();
-    cb(null, uniqueSuffix + '.' + fileExt);
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    // 处理文件名编码问题，确保文件名为UTF-8编码
+    file.originalname = Buffer.from(file.originalname, 'latin1').toString('utf-8');
+    cb(null, uniqueSuffix + "-" + file.originalname);
   },
 });
 

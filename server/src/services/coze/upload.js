@@ -8,11 +8,10 @@ import { client } from "./client.js";
 /**
  * 上传文件到 Coze
  * @param {Express.Multer.File} file - 文件对象
- * @param {string} conversationId - 会话ID
  * @returns
  */
-export const uploadFile = async (file, conversationId) => {
-  if (!file || !conversationId) {
+export const uploadFile = async (file) => {
+  if (!file) {
     throw new FileUploadError();
   }
   const filePath = join(getUploadsDir(), file.filename);
@@ -25,7 +24,6 @@ export const uploadFile = async (file, conversationId) => {
     filename: file.filename,
     mimetype: file.mimetype,
     size: file.size,
-    conversationId: conversationId,
     isImage: isImageFile(file.mimetype),
     url: `/files/${file.filename}`,
   });

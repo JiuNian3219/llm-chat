@@ -1,0 +1,32 @@
+import { useConversationContext } from "@/domain/chat/contexts/useConversationContext";
+import { Layout, Skeleton, Typography } from "antd";
+import styles from "./index.module.css";
+
+const { Title } = Typography;
+const { Header } = Layout;
+
+/**
+ * HeaderCard 组件，用于显示页面头部信息
+ * @param {object} props
+ * @param {React.CSSProperties} [props.style] - 额外的样式
+ * @param {string} [props.className] - 额外的类名
+ */
+const HeaderCard = ({ style, className }) => {
+  const { currentTitle, isLoadingTitle } = useConversationContext();
+
+  return (
+    <Header
+      style={style}
+      className={`${styles["header"]} ${className}`}
+    >
+      <Title
+        level={4}
+        className={styles["header-title"]}
+      >
+        {isLoadingTitle ? <Skeleton.Input active /> : currentTitle || ""}
+      </Title>
+    </Header>
+  );
+};
+
+export default HeaderCard;

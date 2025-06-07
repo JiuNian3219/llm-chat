@@ -6,6 +6,7 @@ import useCopyToClipboard from "@/domain/chat/hooks/useCopyToClipboard";
 import styles from "./index.module.css";
 import FollowUpMessage from "../FollowUpMessage";
 import DotPulseLoader from "@/base/components/DotPulseLoader";
+import { useChatContext } from "@/domain/chat/contexts/useChatContext";
 
 /**
  *
@@ -22,6 +23,7 @@ import DotPulseLoader from "@/base/components/DotPulseLoader";
  */
 const AIMessage = ({ message, isLast, className, style }) => {
   const { content, isLoading, followUps, isCancel } = message;
+  const { isChatCompleted } = useChatContext();
   const { copyText, getCopyIcon } = useCopyToClipboard();
   const handleCopyMessage = async () => {
     // 如果没有消息则不执行复制操作
@@ -65,7 +67,7 @@ const AIMessage = ({ message, isLast, className, style }) => {
               vertical={followUps.length > 0}
               gap={4}
             >
-              {followUps.length === 0 ? (
+              {followUps.length === 0 && !isChatCompleted ? (
                 <Spin className={styles.loading} />
               ) : (
                 // 当 followUps 有内容时，显示建议列表

@@ -1,0 +1,19 @@
+.button-icon {
+  font-size: 24px;
+  color: #8b8b8b;
+}
+
+.logo-container {
+  width: 100%;
+  padding: 0px 16px;
+}
+
+.logo {
+  font-size: 40px;
+}
+
+.logo-title {
+  padding: 0 10px;
+  overflow: hidden;
+  white-space: nowrap;
+}

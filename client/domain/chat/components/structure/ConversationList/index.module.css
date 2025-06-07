@@ -1,0 +1,78 @@
+.conversation-list {
+  width: 100%;
+  overflow-y: auto;
+  padding: 0 16px;
+  position: relative;
+}
+
+/* 自定义滚动条 */
+.conversation-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.conversation-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.conversation-list::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+  /* 让滚动条浮在内容上方 */
+  position: absolute;
+  right: 0;
+}
+
+.conversation-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+/* 让滚动条不占用内容空间 */
+.conversation-list::-webkit-scrollbar-button {
+  display: none;
+}
+
+.conversation-list-skeleton-container {
+  width: 100%;
+}
+
+.conversation-list-skeleton {
+  width: 100%;
+  height: 40px;
+  margin-bottom: 8px;
+}
+
+.conversation-item {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  border-radius: 8px;
+  height: 40px;
+  padding: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.conversation-item:hover {
+  background-color: #eef7ff;
+}
+
+.conversation-item.selected {
+  background-color: #e6f7ff;
+  color: #1677ff;
+}
+
+.conversation-item-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-left: 8px;
+}
+
+.no-conversations {
+  height: 200px;
+  width: 100%;
+  color: #999;
+}

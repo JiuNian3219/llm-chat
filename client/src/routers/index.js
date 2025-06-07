@@ -1,7 +1,6 @@
 import { createBrowserRouter } from "react-router-dom";
 import Home from "@/src/pages/Home";
 import Chat from "@/src/pages/Chat";
-import { Component } from "react";
 import Root from "../pages/Root";
 
 const router = createBrowserRouter([
@@ -15,6 +14,10 @@ const router = createBrowserRouter([
       },
       {
         path: "/chat",
+        Component: Chat,
+      },
+      {
+        path: "/chat/:conversationId",
         Component: Chat,
       }
     ]

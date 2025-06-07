@@ -1,24 +1,45 @@
+import AIFooterTip from "@/domain/chat/components/AIFooterTip";
 import AIGreeting from "@/domain/chat/components/AIGreeting";
 import AIInputPanel from "@/domain/chat/components/input/AIInputPanel";
-import AIFooterTip from "@/domain/chat/components/AIFooterTip";
-import { Flex } from "antd";
-import { useEffect, useState } from "react";
-import { useChatContext } from "@/domain/chat/contexts/useChatContext";
 import ChatMessages from "@/domain/chat/components/structure/ChatMessages";
+import { useChatContext } from "@/domain/chat/contexts/useChatContext";
+import { Flex } from "antd";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import styles from "./index.module.css";
 
 const Home = () => {
-  const { messages } = useChatContext();
-  const [ inBottom, setInBottom ] = useState(messages.length !== 0);
-  const [ shouldHide, setShouldHide ] = useState(messages.length !== 0);
+  const { messages, handleFirstChange } = useChatContext();
+  const [inBottom, setInBottom] = useState(false);
+  const [shouldHide, setShouldHide] = useState(false);
+  const navigate = useNavigate();
+  const hideTimeout = useRef(null);
 
   useEffect(() => {
+    if (hideTimeout.current) {
+      clearTimeout(hideTimeout.current);
+    }
     // 检测 messages 数组是否为空
     setInBottom(messages.length !== 0);
-    setTimeout(() => {
+    hideTimeout.current = setTimeout(() => {
       setShouldHide(messages.length > 0);
     }, 350);
   }, [messages.length > 0]);
+
+  /**
+   * 处理开始事件
+   * @param {object} data - 回调数据，包含 conversationId
+   */
+  const handleStart = (data) => {
+    handleFirstChange(true);
+    setTimeout(() => {
+      const { conversationId } = data;
+      navigate("/chat/" + conversationId, {
+        replace: true,
+      });
+    }, 1000);
+  };
+
   return (
     <Flex
       vertical
@@ -37,11 +58,21 @@ const Home = () => {
         }}
         className={styles.greeting}
       />
-      <ChatMessages style={{
-        flex: inBottom ? "1" : "0",
-      }} className={styles.messages}/>
-      <AIInputPanel className={styles.input}/>
-      <AIFooterTip/>
+      <ChatMessages
+        style={{
+          flex: inBottom ? "1" : "0",
+        }}
+        className={styles.messages}
+      />
+      <Flex vertical>
+        <AIInputPanel
+          callbacks={{
+            onStart: handleStart,
+          }}
+          className={styles.input}
+        />
+        <AIFooterTip />
+      </Flex>
     </Flex>
   );
 };

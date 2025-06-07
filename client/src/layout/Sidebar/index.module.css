@@ -1,0 +1,12 @@
+.sider {
+  position: sticky;
+  top: 0;
+  bottom: 0;
+  height: 100vh;
+  max-height: 100vh;
+  border-right: 1px solid #ebebeb;
+}
+
+.logo-flex {
+  padding: 10px 0;
+}

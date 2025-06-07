@@ -15,6 +15,7 @@ import { UPLOAD_LIMITS } from "@/domain/chat/const";
 const FileUploadButton = ({ className, style, ...props }) => {
   const fileInputRef = useRef(null);
   const { uploadFiles } = useChatContext();
+  
   const handleClick = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();

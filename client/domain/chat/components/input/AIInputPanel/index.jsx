@@ -11,19 +11,26 @@ import FileQueue from "../../structure/FileQueue";
 /**
  * AI输入面板组件
  * @param {object} props - 组件属性
+ * @param {object} [props.callbacks] - 回调函数
+ * @param {function} [props.callbacks.onStart] - 发送消息的回调函数
+ * @param {function} [props.callbacks.onMessage] - 接收消息的回调函数
+ * @param {function} [props.callbacks.onCompleted] - 完成消息的回调函数
+ * @param {function} [props.callbacks.onFollowUp] - 跟进消息的回调函数
+ * @param {function} [props.callbacks.onDone] - 完成消息的回调函数
+ * @param {function} [props.callbacks.onError] - 错误回调函数
  * @param {string} [props.className] - 组件类名
  * @param {import("react").CSSProperties} [props.style] - 组件样式
  * @returns
  */
-const AIInputPanel = ({ className, style }) => {
+const AIInputPanel = ({ callbacks, className, style }) => {
   const options = [{ value: "LLM", label: "LLM Chat" }];
   const [message, setMessage] = useState("");
-  const { sendStreamMessage, cancelCurrentStream, isChatCompleted, files, currentChatId } =
+  const { sendStreamMessage, cancelCurrentStream, isChatCompleted, files, currentChatId, currentConversationId, isLoadingMessages } =
     useChatContext();
 
   const handleSendMessage = () => {
     if (!message) return;
-    sendStreamMessage({ message });
+    sendStreamMessage({ message, callbacks, conversationId: currentConversationId });
     setMessage("");
   };
 
@@ -31,7 +38,7 @@ const AIInputPanel = ({ className, style }) => {
     // 如果按下的是Ctrl + Enter，则发送消息
     if (e.ctrlKey && e.key === "Enter") {
       e.preventDefault();
-      if (!isChatCompleted) return;
+      if (!isChatCompleted || isLoadingMessages) return;
       handleSendMessage();
     }
   };
@@ -75,6 +82,7 @@ const AIInputPanel = ({ className, style }) => {
             }
             onClick={isChatCompleted ? handleSendMessage : cancelCurrentStream}
             loading={!currentChatId && !isChatCompleted}
+            disabled={isLoadingMessages}
             type="primary"
           />
         </Flex>

@@ -35,6 +35,12 @@ const fileSchema = new mongoose.Schema(
     url: {
       type: String,
     },
+    isDeleted: {
+      type: Boolean,
+      required: true,
+      index: true,
+      default: false,
+    },
   },
   {
     timestamps: true,

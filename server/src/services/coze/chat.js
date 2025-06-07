@@ -1,4 +1,4 @@
-import { createConversation } from "../database/conversation.js";
+import { createConversation, updateConversationTimestamp } from "../database/conversation.js";
 import { getFilesByIds } from "../database/file.js";
 import { createMessage } from "../database/message.js";
 import { INFORMATION_REFINER_PROMPT } from "../utils/constants.js";
@@ -58,8 +58,10 @@ export async function streamChat(
 ) {
   if (!conversationId) {
     // 如果没有提供会话ID，则创建一个新的会话
-    conversationId = await createNewConversation();
+    conversationId = await createNewConversation(content);
   }
+  // 更新会话的时间戳，使其在会话列表的最上方
+  await updateConversationTimestamp(conversationId);
   const { onStart, onMessage, onCompleted, onDone, onError } = callbacks;
 
   // 创建用户消息记录
@@ -90,6 +92,7 @@ export async function streamChat(
     conversationId,
     chatId: null,
     fullContent: "",
+    followUps: [],
   };
 
   try {
@@ -107,6 +110,9 @@ export async function streamChat(
         case ChatEventType.CONVERSATION_MESSAGE_COMPLETED:
           if (["follow_up", "answer"].includes(part.data.type)) {
             onCompleted?.(part.data);
+            if (part.data.type === "follow_up") {
+              messageInfo.followUps.push(part.data.content);
+            }
           }
           break;
         case ChatEventType.DONE:
@@ -169,7 +175,7 @@ async function getFilesFromContent(content, contentType) {
       const parsedContent = JSON.parse(content);
       const fileIds = parsedContent
         .filter((item) => item.type !== "text")
-        .map((item) => item.id);
+        .map((item) => item.file_id);
       if (fileIds.length === 0) {
         return [];
       }
@@ -183,13 +189,14 @@ async function getFilesFromContent(content, contentType) {
 
 /**
  * 创建新的会话
+ * @param {string} query - 用于生成会话标题的查询内容
  * @returns
  */
-async function createNewConversation() {
+async function createNewConversation(query) {
   const conversation = await client.conversations.create({
     bot_id: generalBotID,
   });
-  generateConversationTitle("新会话")
+  generateConversationTitle(query)
     .then((title) => {
       createConversation(conversation.id, title);
     })
@@ -210,5 +217,6 @@ async function saveAIMessage(messageInfo) {
     content: messageInfo.fullContent,
     contentType: "text",
     chatId: messageInfo.chatId,
+    followUps: messageInfo.followUps,
   });
 }

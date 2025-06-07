@@ -4,6 +4,7 @@ import connectDB from "./config/db.js";
 import coze from "./routers/coze.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { getUploadsDir } from "./utils/file.js";
+import { initScheduler } from "./scheduler/index.js";
 
 const app = express();
 const port = 3001;
@@ -25,6 +26,8 @@ app.use('/files', express.static(getUploadsDir()));
 
 // 全局的错误处理器
 app.use(errorHandler);
+
+initScheduler();
 
 app.listen(port, () => {
   console.log(`Express服务器运行在 http://localhost:${port}`);

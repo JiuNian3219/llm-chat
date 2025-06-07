@@ -7,7 +7,7 @@ import Message from "../../models/message.js";
  * @param {string} messageData.role - 消息角色, "user" 或 "assistant"
  * @param {string} messageData.content - 消息内容
  * @param {import("@coze/api").ContentType} messageData.contentType - 内容类型, "text", "object_string"
- * @param {string[]} [messageData.followUp] - 后续问题
+ * @param {string[]} [messageData.followUps] - 后续问题
  * @param {Array} [messageData.files] - 关联的文件列表
  * @param {string} [messageData.chatId] - COZE返回的聊天ID
  */
@@ -16,7 +16,7 @@ export const createMessage = async ({
   role,
   content,
   contentType,
-  followUp,
+  followUps,
   files,
   chatId,
 }) => {
@@ -25,7 +25,7 @@ export const createMessage = async ({
     role,
     content,
     contentType: contentType || "text",
-    followUps: followUp,
+    followUps: followUps,
     files: files,
     chatId,
   });

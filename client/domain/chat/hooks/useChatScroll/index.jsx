@@ -34,7 +34,7 @@ export const useChatScroll = ({ boxRef, isChatCompleted = false, threshold = 300
 
     scrollElement.scrollTo({
       top: scrollElement.scrollHeight,
-      behavior: smooth ? "smooth" : "auto",
+      behavior: smooth ? "smooth" : "instant",
     });
     checkIsAwayFromBottom();
   }, [boxRef]);
