@@ -44,6 +44,7 @@ function streamChatByCoze(
         "Content-Type": "application/json",
         Accept: "text/event-stream",
       },
+      openWhenHidden: true, // 确保在后台也能接收消息
       signal: controller.signal,
       onmessage: (event) => {
         const data = JSON.parse(event.data);
