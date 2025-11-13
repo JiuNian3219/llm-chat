@@ -6,6 +6,40 @@ import { formatServerMessages, generateMultimodalMessage, isImageType } from "@/
 import { message as antdMessage } from "antd";
 
 /**
+ * 轮询获取会话标题，直到获取到非默认标题或达到最大尝试次数
+ * @param {string} conversationId - 会话ID
+ * @param {object} [params] - 可选参数
+ * @param {number} [params.intervalMs=800] - 轮询间隔（毫秒）
+ * @param {number} [params.maxAttempts=25] - 最大尝试次数
+ * @returns {function} 取消轮询函数
+ */
+function pollConversationTitle(conversationId, { intervalMs = 800, maxAttempts = 25 } = {}) {
+  let attempts = 0;
+  let stopped = false;
+  const tick = async () => {
+    if (stopped) return;
+    const currentId = useConversation.getState().currentConversationId;
+    if (currentId && currentId !== conversationId) return;
+    attempts += 1;
+    try {
+      const { data } = await server.getConversationTitle(conversationId);
+      if (data?.titleReady) {
+        const title = (data?.title || "").trim();
+        useConversation.getState().updateConversationTitle(conversationId, title || "新对话");
+        return;
+      }
+    } catch { }
+    if (attempts < maxAttempts) {
+      setTimeout(tick, intervalMs);
+    }
+  };
+  setTimeout(tick, intervalMs);
+  return () => {
+    stopped = true;
+  };
+}
+
+/**
  * 加载某会话的消息列表
  * @param {string|null} conversationId
  */
@@ -86,6 +120,7 @@ export async function sendStreamMessage({ message, attachments, callbacks, conve
     const cancelFn = server.streamChatByCoze(payload, contentType, {
       onStart: (data) => {
         useConversation.getState().addNewConversation(data.conversationId, "新对话");
+        pollConversationTitle(data.conversationId);
         onStart?.(data);
       },
       onMessage: (data) => {

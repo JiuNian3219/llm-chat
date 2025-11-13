@@ -221,7 +221,7 @@ export const getConversationTitleHandler = asyncHandler(async (req, res) => {
   if (!conversation) {
     throw new NotFoundError("会话不存在");
   }
-  success(res, { title: conversation.title });
+  success(res, { title: conversation.title, titleReady: !!conversation.titleReady });
 });
 
 /**

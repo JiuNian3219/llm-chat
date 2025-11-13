@@ -1,4 +1,4 @@
-import { createConversation, updateConversationTimestamp } from "../database/conversation.js";
+import { createConversation, updateConversationTimestamp, updateConversationTitle } from "../database/conversation.js";
 import { getFilesByIds } from "../database/file.js";
 import { createMessage } from "../database/message.js";
 import { INFORMATION_REFINER_PROMPT } from "../utils/constants.js";
@@ -208,9 +208,10 @@ async function createNewConversation(query) {
   const conversation = await client.conversations.create({
     bot_id: generalBotID,
   });
+  await createConversation(conversation.id, '新对话', false);
   generateConversationTitle(query)
     .then((title) => {
-      createConversation(conversation.id, title);
+      updateConversationTitle(conversation.id, title);
     })
     .catch((error) => {
       console.error("生成会话标题失败:", error);

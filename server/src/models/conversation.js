@@ -12,6 +12,10 @@ const conversationSchema = new mongoose.Schema(
       type: String,
       default: '新对话'
     },
+    titleReady: {
+      type: Boolean,
+      default: false
+    },
   },
   { 
     timestamps: true 

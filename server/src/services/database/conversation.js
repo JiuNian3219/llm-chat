@@ -9,10 +9,11 @@ import { getMessagesByConversationId } from "./message.js";
  * @param {string} title
  * @returns
  */
-export const createConversation = async (conversationId, title) => {
+export const createConversation = async (conversationId, title, titleReady = false) => {
   const conversation = new Conversation({
     conversationId,
     title: title,
+    titleReady,
   });
   await conversation.save();
   return conversation.toObject();
@@ -95,7 +96,7 @@ export const getConversation = async (
 export const updateConversationTitle = async (conversationId, title) => {
   const conversation = await Conversation.findOneAndUpdate(
     { conversationId },
-    { title },
+    { title, titleReady: true },
     { new: true }
   ).lean();
   if (!conversation) {
