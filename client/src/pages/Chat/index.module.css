@@ -3,35 +3,6 @@
   overflow-y: auto;
 }
 
-/* 自定义滚动条 */
-.chat-container::-webkit-scrollbar {
-  width: 6px;
-}
-
-.chat-container::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.chat-container::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 3px;
-  /* 让滚动条浮在内容上方 */
-  position: absolute;
-  right: 0;
-}
-
-.chat-container::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.4);
-}
-
-.chat-container::-webkit-scrollbar-button {
-  display: none;
-}
-
-.chat-container-skeleton-container {
-  width: 100%;
-}
-
 .messages {
   flex: 1;
   width: 800px;
