@@ -7,32 +7,7 @@
 
 /* 自定义滚动条 */
 .conversation-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.conversation-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.conversation-list::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 3px;
-  /* 让滚动条浮在内容上方 */
-  position: absolute;
-  right: 0;
-}
-
-.conversation-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.4);
-}
-
-/* 让滚动条不占用内容空间 */
-.conversation-list::-webkit-scrollbar-button {
   display: none;
-}
-
-.conversation-list-skeleton-container {
-  width: 100%;
 }
 
 .conversation-list-skeleton {
