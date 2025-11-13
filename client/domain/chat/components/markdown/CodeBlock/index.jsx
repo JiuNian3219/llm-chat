@@ -1,7 +1,7 @@
-import SyntaxHighlighter from "react-syntax-highlighter";
-import styles from "./index.module.css";
-import { atomOneLight } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import { Flex } from "antd";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
+import styles from "./index.module.css";
 
 /**
  * Markdown 代码块组件
@@ -28,9 +28,9 @@ const CodeBlock = ({ children, className, ...props }) => {
         className={`${className} ${styles["code-block"]}`}
         customStyle={{
           padding: "16px",
-          backgroundColor: "transparent",
+          marginTop: 0,
         }}
-        style={atomOneLight}
+        style={vscDarkPlus}
         language={language}
         {...props}
       >
