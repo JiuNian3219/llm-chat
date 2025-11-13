@@ -32,7 +32,7 @@ const Home = () => {
   useEffect(() => {
     const { setCurrentConversationId, setCurrentTitle } = useConversation.getState();
     setCurrentConversationId(null);
-    setCurrentTitle("新对话");
+    setCurrentTitle("");
   }, []);
 
   /**

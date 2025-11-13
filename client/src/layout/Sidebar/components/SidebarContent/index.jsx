@@ -5,6 +5,7 @@ import { Button } from "antd";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "./index.module.css";
+import { resetChatFlow } from "@/domain/chat/services/chatService";
 
 /**
  * 侧边栏内容组件，显示对话列表和新建对话按钮
@@ -19,6 +20,7 @@ const SidebarContent = ({ collapsed }) => {
     fetchConversations();
   }, []);
   const handleNewConversation = () => {
+    resetChatFlow();
     navigate("/");
   };
 
