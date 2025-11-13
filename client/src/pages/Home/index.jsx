@@ -2,14 +2,16 @@ import AIFooterTip from "@/domain/chat/components/AIFooterTip";
 import AIGreeting from "@/domain/chat/components/AIGreeting";
 import AIInputPanel from "@/domain/chat/components/input/AIInputPanel";
 import ChatMessages from "@/domain/chat/components/structure/ChatMessages";
-import { useChatContext } from "@/domain/chat/contexts/useChatContext";
+import { handleFirstChange } from "@/domain/chat/services/chatService";
+import { useConversation } from "@/domain/chat/stores/conversationStore";
+import { useMessages } from "@/domain/chat/stores/messageStore";
 import { Flex } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "./index.module.css";
 
 const Home = () => {
-  const { messages, handleFirstChange } = useChatContext();
+  const messageCount = useMessages((s) => s.messageIds.length);
   const [inBottom, setInBottom] = useState(false);
   const [shouldHide, setShouldHide] = useState(false);
   const navigate = useNavigate();
@@ -19,12 +21,19 @@ const Home = () => {
     if (hideTimeout.current) {
       clearTimeout(hideTimeout.current);
     }
-    // 检测 messages 数组是否为空
-    setInBottom(messages.length !== 0);
+    // 检测消息数量是否为空
+    setInBottom(messageCount !== 0);
     hideTimeout.current = setTimeout(() => {
-      setShouldHide(messages.length > 0);
+      setShouldHide(messageCount > 0);
     }, 350);
-  }, [messages.length > 0]);
+  }, [messageCount > 0]);
+
+  // 进入首页时重置当前会话标识与标题
+  useEffect(() => {
+    const { setCurrentConversationId, setCurrentTitle } = useConversation.getState();
+    setCurrentConversationId(null);
+    setCurrentTitle("新对话");
+  }, []);
 
   /**
    * 处理开始事件

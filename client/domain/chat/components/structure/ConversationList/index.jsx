@@ -1,9 +1,9 @@
+import IconButton from "@/base/components/IconButton";
+import { useConversation } from "@/domain/chat/stores/conversationStore";
+import { MoreOutlined } from "@ant-design/icons";
 import { Flex, Skeleton } from "antd";
 import { useNavigate } from "react-router-dom";
 import styles from "./index.module.css";
-import IconButton from "@/base/components/IconButton";
-import { MoreOutlined } from "@ant-design/icons";
-import { useConversationContext } from "@/domain/chat/contexts/useConversationContext";
 
 /**
  * 会话列表组件，展示所有会话的标题列表
@@ -13,11 +13,9 @@ import { useConversationContext } from "@/domain/chat/contexts/useConversationCo
  * @returns
  */
 const ConversationList = ({ style, className }) => {
-  const { 
-    conversations, 
-    currentConversationId, 
-    isLoadingList 
-  } = useConversationContext();
+  const conversations = useConversation((s) => s.conversations);
+  const currentConversationId = useConversation((s) => s.currentConversationId);
+  const isLoadingList = useConversation((s) => s.isLoadingList);
   const navigate = useNavigate();
 
   const handleConversationClick = (id) => {

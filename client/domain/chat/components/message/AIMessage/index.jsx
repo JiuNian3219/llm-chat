@@ -1,6 +1,8 @@
 import DotPulseLoader from "@/base/components/DotPulseLoader";
 import IconButton from "@/base/components/IconButton";
-import { useChatContext } from "@/domain/chat/contexts/useChatContext";
+import { memo } from "react";
+import { useChatStore } from "@/domain/chat/stores/chatStore";
+import { useMessages } from "@/domain/chat/stores/messageStore";
 import useCopyToClipboard from "@/domain/chat/hooks/useCopyToClipboard";
 import { SyncOutlined, WarningOutlined } from "@ant-design/icons";
 import { Flex, Spin } from "antd";
@@ -11,20 +13,15 @@ import styles from "./index.module.css";
 /**
  *
  * @param {object} props - 组件属性
- * @param {object} props.message - 展示信息
- * @param {string} props.message.content - 消息内容
- * @param {boolean} props.message.isLoading - 是否加载中
- * @param {Array} props.message.followUps - 后续消息
- * @param {boolean} props.message.isCancel - 是否取消
- * @param {boolean} props.message.isError - 是否错误消息
+ * @param {string} props.messageId - 消息ID
  * @param {boolean} props.isLast - 是否是最后一条消息
  * @param {string} [props.className] - 额外的类名
  * @param {React.CSSProperties} [props.style] - 额外的样式
  * @returns
  */
-const AIMessage = ({ message, isLast, className, style }) => {
-  const { content, isLoading, followUps, isCancel, isError } = message;
-  const { isChatCompleted } = useChatContext();
+const AIMessage = ({ messageId, isLast, className, style }) => {
+  const { content, isLoading, followUps = [], isCancel, isError } = useMessages((s) => s.messagesById[messageId] || {});
+  const isChatCompleted = useChatStore((s) => s.isChatCompleted);
   const { copyText, getCopyIcon } = useCopyToClipboard();
   const hasContent = !!content;
   // 是否展示加载态，当正在加载，没有内容，不是取消，不是错误时展示
@@ -126,4 +123,4 @@ const AIMessage = ({ message, isLast, className, style }) => {
   );
 };
 
-export default AIMessage;
+export default memo(AIMessage);

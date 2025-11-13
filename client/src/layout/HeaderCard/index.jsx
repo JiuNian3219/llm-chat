@@ -1,4 +1,4 @@
-import { useConversationContext } from "@/domain/chat/contexts/useConversationContext";
+import { useConversation } from "@/domain/chat/stores/conversationStore";
 import { Layout, Skeleton, Typography } from "antd";
 import styles from "./index.module.css";
 
@@ -12,7 +12,8 @@ const { Header } = Layout;
  * @param {string} [props.className] - 额外的类名
  */
 const HeaderCard = ({ style, className }) => {
-  const { currentTitle, isLoadingTitle } = useConversationContext();
+  const currentTitle = useConversation((s) => s.currentTitle);
+  const isLoadingTitle = useConversation((s) => s.isLoadingTitle);
 
   return (
     <Header

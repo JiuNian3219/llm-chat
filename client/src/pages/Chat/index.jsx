@@ -2,8 +2,10 @@ import IconButton from "@/base/components/IconButton";
 import AIFooterTip from "@/domain/chat/components/AIFooterTip";
 import AIInputPanel from "@/domain/chat/components/input/AIInputPanel";
 import ChatMessages from "@/domain/chat/components/structure/ChatMessages";
-import { useChatContext } from "@/domain/chat/contexts/useChatContext";
 import { useChatScroll } from "@/domain/chat/hooks/useChatScroll";
+import { loadConversationMessages } from "@/domain/chat/services/chatService";
+import { useChatStore } from "@/domain/chat/stores/chatStore";
+import { useConversation } from "@/domain/chat/stores/conversationStore";
 import { ArrowDownOutlined } from "@ant-design/icons";
 import { Flex, Spin, theme } from "antd";
 import { useEffect, useRef } from "react";
@@ -15,7 +17,8 @@ const Chat = () => {
     token: { colorBgContainer },
   } = theme.useToken();
 
-  const { isChatCompleted, isLoadingMessages } = useChatContext();
+  const isChatCompleted = useChatStore((s) => s.isChatCompleted);
+  const isLoadingMessages = useChatStore((s) => s.isLoadingMessages);
   const navigate = useNavigate();
   const { conversationId } = useParams();
 
@@ -48,6 +51,12 @@ const Chat = () => {
       });
       return;
     }
+    // 更新会话状态与标题，并加载会话消息
+    const setCurrentConversationId = useConversation.getState().setCurrentConversationId;
+    const fetchCurrentTitle = useConversation.getState().fetchCurrentTitle;
+    setCurrentConversationId(conversationId);
+    fetchCurrentTitle(conversationId);
+    loadConversationMessages(conversationId);
   }, [conversationId]);
 
   return (

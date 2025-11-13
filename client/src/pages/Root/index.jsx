@@ -1,13 +1,8 @@
-import { ChatProvider } from "@/domain/chat/contexts/useChatContext";
-import { ConfigProvider, Layout, Typography } from "antd";
-import { Outlet } from "react-router-dom";
-import styles from "./index.module.css";
-import Sidebar from "@/src/layout/Sidebar";
-import { ConversationProvider } from "@/domain/chat/contexts/useConversationContext";
 import HeaderCard from "@/src/layout/HeaderCard";
-const { Header, Content } = Layout;
-
-const { Title } = Typography;
+import Sidebar from "@/src/layout/Sidebar";
+import { ConfigProvider, Layout } from "antd";
+import { Outlet } from "react-router-dom";
+const { Content } = Layout;
 
 const Root = () => {
   return (
@@ -36,17 +31,13 @@ const Root = () => {
           height: "100vh",
         }}
       >
-        <ConversationProvider>
-          <Sidebar />
-          <Layout>
-            <HeaderCard />
-            <Content>
-              <ChatProvider>
-                <Outlet />
-              </ChatProvider>
-            </Content>
-          </Layout>
-        </ConversationProvider>
+        <Sidebar />
+        <Layout>
+          <HeaderCard />
+          <Content>
+            <Outlet />
+          </Content>
+        </Layout>
       </Layout>
     </ConfigProvider>
   );

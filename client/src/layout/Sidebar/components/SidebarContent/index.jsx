@@ -3,6 +3,8 @@ import { PlusOutlined } from "@ant-design/icons";
 import { Button } from "antd";
 import styles from "./index.module.css";
 import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { useConversation } from "@/domain/chat/stores/conversationStore";
 
 /**
  * 侧边栏内容组件，显示对话列表和新建对话按钮
@@ -12,6 +14,10 @@ import { useNavigate } from "react-router-dom";
  */
 const SidebarContent = ({ collapsed }) => {
   const navigate = useNavigate();
+  const fetchConversations = useConversation((s) => s.fetchConversations);
+  useEffect(() => {
+    fetchConversations();
+  }, []);
   const handleNewConversation = () => {
     navigate("/");
   };

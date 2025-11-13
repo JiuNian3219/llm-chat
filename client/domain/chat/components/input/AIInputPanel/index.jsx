@@ -1,12 +1,14 @@
 import IconButton from "@/base/components/IconButton";
-import { useChatContext } from "@/domain/chat/contexts/useChatContext";
-import { ArrowUpOutlined, BorderOutlined } from "@ant-design/icons";
+import { cancelCurrentStream, sendStreamMessage } from "@/domain/chat/services/chatService";
+import { useChatStore } from "@/domain/chat/stores/chatStore";
+import { useConversation } from "@/domain/chat/stores/conversationStore";
+import { ArrowUpOutlined } from "@ant-design/icons";
 import { Divider, Flex, Select } from "antd";
 import { useState } from "react";
+import FileQueue from "../../structure/FileQueue";
+import FileUploadButton from "../FileUploadButton";
 import MultilineInput from "../MultilineInput";
 import styles from "./index.module.css";
-import FileUploadButton from "../FileUploadButton";
-import FileQueue from "../../structure/FileQueue";
 
 /**
  * AI输入面板组件
@@ -25,8 +27,11 @@ import FileQueue from "../../structure/FileQueue";
 const AIInputPanel = ({ callbacks, className, style }) => {
   const options = [{ value: "LLM", label: "LLM Chat" }];
   const [message, setMessage] = useState("");
-  const { sendStreamMessage, cancelCurrentStream, isChatCompleted, files, currentChatId, currentConversationId, isLoadingMessages } =
-    useChatContext();
+  const isChatCompleted = useChatStore((s) => s.isChatCompleted);
+  const files = useChatStore((s) => s.files);
+  const currentChatId = useChatStore((s) => s.currentChatId);
+  const isLoadingMessages = useChatStore((s) => s.isLoadingMessages);
+  const currentConversationId = useConversation((s) => s.currentConversationId);
 
   const handleSendMessage = () => {
     if (!message) return;

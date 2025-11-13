@@ -1,6 +1,6 @@
 import { Button } from "antd";
 import styles from "./index.module.css";
-import { useChatContext } from "@/domain/chat/contexts/useChatContext";
+import { sendStreamMessage } from "@/domain/chat/services/chatService";
 
 /**
  * FollowUpMessage 组件
@@ -11,8 +11,6 @@ import { useChatContext } from "@/domain/chat/contexts/useChatContext";
  * @returns
  */
 const FollowUpMessage = ({ message, className, style }) => {
-  const { sendStreamMessage } = useChatContext();
-
   const handleSendMessage = () => {
     if (!message) return;
     sendStreamMessage({ message });

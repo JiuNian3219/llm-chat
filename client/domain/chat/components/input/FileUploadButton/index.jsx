@@ -1,5 +1,5 @@
 import IconButton from "@/base/components/IconButton";
-import { useChatContext } from "@/domain/chat/contexts/useChatContext";
+import { uploadFiles } from "@/domain/chat/services/chatService";
 import { PaperClipOutlined } from "@ant-design/icons";
 import { useRef } from "react";
 import styles from "./index.module.css";
@@ -14,7 +14,6 @@ import { UPLOAD_LIMITS } from "@/domain/chat/const";
  */
 const FileUploadButton = ({ className, style, ...props }) => {
   const fileInputRef = useRef(null);
-  const { uploadFiles } = useChatContext();
   
   const handleClick = () => {
     if (fileInputRef.current) {

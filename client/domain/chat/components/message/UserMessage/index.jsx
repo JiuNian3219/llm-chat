@@ -1,29 +1,29 @@
 import IconButton from "@/base/components/IconButton";
-import styles from "./index.module.css";
-import { EditOutlined } from "@ant-design/icons";
-import { App, Button, Flex } from "antd";
-import { useState } from "react";
-import TextArea from "antd/es/input/TextArea";
 import useCopyToClipboard from "@/domain/chat/hooks/useCopyToClipboard";
+import { sendStreamMessage } from "@/domain/chat/services/chatService";
+import { useChatStore } from "@/domain/chat/stores/chatStore";
+import { useMessages } from "@/domain/chat/stores/messageStore";
+import { EditOutlined } from "@ant-design/icons";
+import { Button, Flex } from "antd";
+import TextArea from "antd/es/input/TextArea";
+import { memo, useState } from "react";
 import FileQueue from "../../structure/FileQueue";
-import { useChatContext } from "@/domain/chat/contexts/useChatContext";
+import styles from "./index.module.css";
 
 /**
  * 用户消息组件 - 显示在右侧
  * @param {object} props - 组件属性
- * @param {object} props.message - 展示信息
- * @param {string} props.message.content - 消息内容
- * @param {Array} [props.message.files] - 消息附带的文件列表
+ * @param {string} props.messageId - 展示信息ID
  * @param {boolean} props.isLast - 是否是最后一条消息
  * @param {string} [props.className] - 额外的类名
  * @param {React.CSSProperties} [props.style] - 额外的样式
  * @returns
  */
-const UserMessage = ({ message, isLast, className, style }) => {
-  const { content, files } = message;
+const UserMessage = ({ messageId, isLast, className, style }) => {
+  const { content, files = [] } = useMessages((s) => s.messagesById[messageId] || {});
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState(content || "");
-  const { sendStreamMessage, isChatCompleted } = useChatContext();
+  const isChatCompleted = useChatStore((s) => s.isChatCompleted);
   const { copyText, getCopyIcon } = useCopyToClipboard();
 
   /**
@@ -136,4 +136,4 @@ const UserMessage = ({ message, isLast, className, style }) => {
   );
 };
 
-export default UserMessage;
+export default memo(UserMessage);

@@ -6,7 +6,7 @@ import styles from "./index.module.css";
 import IconButton from "@/base/components/IconButton";
 import { CloseOutlined } from "@ant-design/icons";
 import { useState } from "react";
-import { useChatContext } from "@/domain/chat/contexts/useChatContext";
+import { cancelFileUpload } from "@/domain/chat/services/chatService";
 import ImageFailedIcon from "@/src/assets/image-failed.svg";
 
 /**
@@ -17,7 +17,6 @@ import ImageFailedIcon from "@/src/assets/image-failed.svg";
  */
 const FilePreview = ({ file, close = true }) => {
   const [imageVisible, setImageVisible] = useState(false);
-  const { cancelFileUpload } = useChatContext();
   const { id, name, size, type, url, status } = file;
   const isImage = type === "image";
 
