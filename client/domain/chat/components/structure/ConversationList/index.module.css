@@ -31,12 +31,14 @@
 }
 
 .conversation-item:hover {
-  background-color: #eef7ff;
+  background: #f3f4f6;
+  transform: translateY(-1px);
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.05));
 }
 
 .conversation-item.selected {
-  background-color: #e6f7ff;
-  color: #1677ff;
+  background-color: #e0ebff;
+  color: #1d4ed8;
 }
 
 .conversation-item-title {
@@ -50,4 +52,17 @@
   height: 200px;
   width: 100%;
   color: #999;
+}
+
+.conversation-item-control {
+  display: none;
+}
+
+.conversation-item:hover .conversation-item-control {
+  display: block;
+  color: #999;
+}
+
+.conversation-item-control:hover {
+  color: #1d4ed8;
 }

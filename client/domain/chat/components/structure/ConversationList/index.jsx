@@ -57,6 +57,7 @@ const ConversationList = ({ style, className }) => {
             </span>
             {/** 暂时未加入编辑选项 */}
             <IconButton
+              className={styles["conversation-item-control"]}
               type="text"
               icon={<MoreOutlined />}
               onClick={(e) => e.stopPropagation()}
