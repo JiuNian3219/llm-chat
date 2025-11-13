@@ -10,6 +10,7 @@ import Message from "../../models/message.js";
  * @param {string[]} [messageData.followUps] - 后续问题
  * @param {Array} [messageData.files] - 关联的文件列表
  * @param {string} [messageData.chatId] - COZE返回的聊天ID
+ * @param {string} [messageData.status] - COZE信息的状态
  */
 export const createMessage = async ({
   conversationId,
@@ -19,6 +20,7 @@ export const createMessage = async ({
   followUps,
   files,
   chatId,
+  status,
 }) => {
   const message = new Message({
     conversationId,
@@ -28,6 +30,7 @@ export const createMessage = async ({
     followUps: followUps,
     files: files,
     chatId,
+    status: status || "normal",
   });
   await message.save();
   return message;

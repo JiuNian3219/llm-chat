@@ -122,12 +122,24 @@ export async function streamChat(
           });
           break;
         case ChatEventType.ERROR:
+          // 记录错误消息到数据库
+          saveErrorMessage(messageInfo, part?.data?.msg || "对话服务暂时不可用").catch(
+            (error) => {
+              console.error("保存错误消息失败:", error);
+            }
+          );
           onError?.(part.data);
           return;
       }
     }
   } catch (error) {
     console.error("流式聊天请求失败:", error);
+    // 保存错误消息到数据库
+    await saveErrorMessage(messageInfo, "对话服务暂时不可用").catch(
+      (e) => {
+        console.error("保存错误消息失败:", e);
+      }
+    );
     onError?.({ msg: "对话服务暂时不可用" });
     throw error;
   }
@@ -218,5 +230,22 @@ async function saveAIMessage(messageInfo) {
     contentType: "text",
     chatId: messageInfo.chatId,
     followUps: messageInfo.followUps,
+  });
+}
+
+/**
+ * 保存错误消息到数据库
+ * @param {Object} messageInfo - 消息信息
+ * @param {string} errorText - 错误文本
+ */
+async function saveErrorMessage(messageInfo, errorText) {
+  await createMessage({
+    conversationId: messageInfo.conversationId,
+    role: "assistant",
+    content: errorText,
+    contentType: "text",
+    chatId: messageInfo.chatId,
+    followUps: messageInfo.followUps,
+    status: "error",
   });
 }

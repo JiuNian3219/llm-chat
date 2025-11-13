@@ -212,7 +212,17 @@ export const ChatProvider = ({ children }) => {
             setIsChatCompleted(true);
             setCurrentChatId(null);
             handleFirstChange(false);
-            messageApi.error("AI对话发生错误，请稍后再试");
+            const errorText = error?.error || error?.message || "AI对话发生错误，请稍后再试";
+            setMessages((draft) => {
+              const index = draft.findIndex((item) => item.id === aiMessage.id);
+              if (index !== -1) {
+                draft[index].isLoading = false;
+                draft[index].isCancel = false;
+                draft[index].isError = true;
+                draft[index].content = errorText;
+              }
+            });
+            messageApi.error(errorText);
             onError?.(error);
           },
         },
@@ -223,7 +233,17 @@ export const ChatProvider = ({ children }) => {
       setIsChatCompleted(true);
       setCurrentChatId(null);
       handleFirstChange(false);
-      messageApi.error("AI对话发生错误，请稍后再试");
+      const errorText = error?.message || "AI对话发生错误，请稍后再试";
+      setMessages((draft) => {
+        const index = draft.findIndex((item) => item.id === aiMessage.id);
+        if (index !== -1) {
+          draft[index].isLoading = false;
+          draft[index].isCancel = false;
+          draft[index].isError = true;
+          draft[index].content = errorText;
+        }
+      });
+      messageApi.error(errorText);
     }
   };
 

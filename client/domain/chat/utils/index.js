@@ -105,7 +105,7 @@ export function formatServerMessages(messages) {
     return [];
   }
   return messages.map((message) => {
-    const { role, contentType, content, files, followUps } = message;
+    const { role, contentType, content, files, followUps, status } = message;
     const newMessage = {
       id: message._id,
       chatId: message.chatId,
@@ -114,6 +114,7 @@ export function formatServerMessages(messages) {
       followUps,
       isLoading: false,
       isCancel: false,
+      isError: status === "error",
       files: [],
     };
     if (contentType === "object_string" && content) {

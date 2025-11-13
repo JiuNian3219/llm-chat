@@ -25,6 +25,11 @@ const messageSchema = new mongoose.Schema(
       enum: ["text", "object_string"],
       required: true,
     },
+    status: {
+      type: String,
+      enum: ["normal", "error"],
+      default: "normal",
+    },
     files: [
       {
         type: mongoose.Schema.Types.ObjectId,
