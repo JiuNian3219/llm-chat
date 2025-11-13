@@ -1,11 +1,11 @@
 import DotPulseLoader from "@/base/components/DotPulseLoader";
 import IconButton from "@/base/components/IconButton";
-import { memo } from "react";
+import useCopyToClipboard from "@/domain/chat/hooks/useCopyToClipboard";
 import { useChatStore } from "@/domain/chat/stores/chatStore";
 import { useMessages } from "@/domain/chat/stores/messageStore";
-import useCopyToClipboard from "@/domain/chat/hooks/useCopyToClipboard";
 import { SyncOutlined, WarningOutlined } from "@ant-design/icons";
 import { Flex, Spin } from "antd";
+import { memo } from "react";
 import FollowUpMessage from "../FollowUpMessage";
 import MarkdownMessage from "../MarkdownMessage";
 import styles from "./index.module.css";
@@ -62,7 +62,7 @@ const AIMessage = ({ messageId, isLast, className, style }) => {
             </Flex>
           ) : (
             <>
-              <MarkdownMessage message={content} />
+              <MarkdownMessage message={content} isCompleted={isChatCompleted} />
               {showActions && (
                 <Flex className={styles["button-container"]}>
                   <IconButton

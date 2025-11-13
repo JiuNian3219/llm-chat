@@ -3,32 +3,33 @@ import rehypeSanitize from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import remarkToc from "remark-toc";
-import PreBlock from "../../markdown/PreBlock";
-import LinkBlock from "../../markdown/LinkBlock";
 import CodeBlock from "../../markdown/CodeBlock";
 import HrBlock from "../../markdown/HrBlock";
-import {
-  TableBlock,
-  TheadBlock,
-  TbodyBlock,
-  TrBlock,
-  ThBlock,
-  TdBlock,
-} from "../../markdown/TableBlock";
+import LinkBlock from "../../markdown/LinkBlock";
 import {
   ListItemBlock,
   OrderedListBlock,
   UnorderedListBlock,
 } from "../../markdown/ListBlock";
+import PreBlock from "../../markdown/PreBlock";
+import {
+  TableBlock,
+  TbodyBlock,
+  TdBlock,
+  ThBlock,
+  TheadBlock,
+  TrBlock,
+} from "../../markdown/TableBlock";
 import styles from "./index.module.css";
 /**
  * Markdown消息组件，展示Markdown格式的消息内容
  * @param {object} props - 组件属性
  * @param {string} props.message - Markdown消息内容
+ * @param {boolean} props.isCompleted - 内容是否完成
  * @param {string} [props.className] - 组件类名
  * @returns 
  */
-const MarkdownMessage = ({ message, className }) => {
+const MarkdownMessage = ({ message, isCompleted, className }) => {
   return (
     <div className={`${styles["markdown-container"]} ${className}`}>
       <ReactMarkdown
@@ -43,6 +44,7 @@ const MarkdownMessage = ({ message, className }) => {
           pre: ({ children }) => <PreBlock>{children}</PreBlock>,
           code: ({ children, className, ...props }) => (
             <CodeBlock
+              isCompleted={isCompleted}
               className={className}
               {...props}
             >
@@ -52,7 +54,7 @@ const MarkdownMessage = ({ message, className }) => {
           a: ({ children, ...props }) => (
             <LinkBlock {...props}>{children}</LinkBlock>
           ),
-          hr: ({}) => <HrBlock />,
+          hr: ({ }) => <HrBlock />,
           table: ({ children, ...props }) => (
             <TableBlock {...props}>{children}</TableBlock>
           ),
