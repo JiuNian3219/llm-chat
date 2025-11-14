@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * 聊天窗口自动滚动 Hook
@@ -7,7 +7,7 @@ import { useEffect, useState, useCallback } from "react";
  * @param {boolean} [options.isChatCompleted=true] - 是否聊天已完成
  * @param {number} [options.threshold=300] - 距离底部多少像素内自动滚动
  */
-export const useChatScroll = ({ boxRef, isChatCompleted = false, threshold = 300 }) => {
+export const useChatScroll = ({ boxRef, isChatCompleted = false, threshold = 200 }) => {
   const [isAwayFromBottom, setIsAwayFromBottom] = useState(false);
 
 
@@ -28,7 +28,7 @@ export const useChatScroll = ({ boxRef, isChatCompleted = false, threshold = 300
    * 滚动到容器底部
    * @param {boolean} [smooth=true] - 是否平滑滚动
    */
-  const scrollToBottom = useCallback((smooth=true) => {
+  const scrollToBottom = useCallback((smooth = true) => {
     const scrollElement = boxRef.current;
     if (!scrollElement) return;
 
@@ -39,13 +39,39 @@ export const useChatScroll = ({ boxRef, isChatCompleted = false, threshold = 300
     checkIsAwayFromBottom();
   }, [boxRef]);
 
+  // 鼠标滚轮向上滚动状态
+  const [isWheelingUp, setIsWheelingUp] = useState(false);
+  const wheelTimer = useRef(null);
+
+  useEffect(() => {
+    const scrollElement = boxRef.current;
+    if (!scrollElement) return;
+
+    const handleWheel = (e) => {
+      if (e.deltaY < 0) {
+        setIsWheelingUp(true);
+        if (wheelTimer.current) clearTimeout(wheelTimer.current);
+        wheelTimer.current = setTimeout(() => {
+          setIsWheelingUp(false);
+        }, 300);
+      }
+    };
+
+    scrollElement.addEventListener("wheel", handleWheel, { passive: true });
+
+    return () => {
+      scrollElement.removeEventListener("wheel", handleWheel);
+      if (wheelTimer.current) clearTimeout(wheelTimer.current);
+    };
+  }, [boxRef]);
+
   useEffect(() => {
     const scrollElement = boxRef.current;
     if (!scrollElement) return;
 
     const observer = new MutationObserver(() => {
-      // 如果接近底部且聊天未完成，则滚动到底部
-      if (!checkIsAwayFromBottom() && !isChatCompleted) {
+      // 如果接近底部且聊天未完成且鼠标滚轮未滚动，则滚动到底部
+      if (!checkIsAwayFromBottom() && !isChatCompleted && !isWheelingUp) {
         scrollToBottom();
       }
       checkIsAwayFromBottom();
@@ -59,16 +85,16 @@ export const useChatScroll = ({ boxRef, isChatCompleted = false, threshold = 300
     });
 
     return () => observer.disconnect();
-  }, [boxRef, isChatCompleted, scrollToBottom, checkIsAwayFromBottom]);
+  }, [boxRef, isChatCompleted, scrollToBottom, checkIsAwayFromBottom, isWheelingUp]);
 
   useEffect(() => {
     const scrollElement = boxRef.current;
     if (!scrollElement) return;
 
     checkIsAwayFromBottom();
-    
+
     scrollElement.addEventListener("scroll", checkIsAwayFromBottom, { passive: true });
-    
+
     return () => {
       scrollElement.removeEventListener("scroll", checkIsAwayFromBottom);
     };
