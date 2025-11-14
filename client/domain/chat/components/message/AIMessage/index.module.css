@@ -46,6 +46,7 @@
 .error-icon {
   color: #ff4d4f;
   line-height: 1.4;
+  transform: translateY(4.5px);
 }
 
 .error-text {
