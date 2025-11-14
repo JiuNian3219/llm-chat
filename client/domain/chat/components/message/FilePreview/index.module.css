@@ -20,6 +20,7 @@
   font-size: 15px;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .file-preview-box:hover {
