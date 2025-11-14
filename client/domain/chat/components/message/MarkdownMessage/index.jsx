@@ -1,5 +1,6 @@
 import ReactMarkdown from "react-markdown";
-import rehypeSanitize from "rehype-sanitize";
+import rehypeKatex from "rehype-katex";
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import remarkToc from "remark-toc";
@@ -21,6 +22,66 @@ import {
   TrBlock,
 } from "../../markdown/TableBlock";
 import styles from "./index.module.css";
+const katexSanitizeSchema = {
+  ...defaultSchema,
+  tagNames: [
+    ...(defaultSchema.tagNames || []),
+    "span",
+    "math",
+    "semantics",
+    "mrow",
+    "mi",
+    "mo",
+    "mn",
+    "msup",
+    "mfrac",
+    "msub",
+    "msubsup",
+    "mover",
+    "munder",
+    "munderover",
+    "mtable",
+    "mtr",
+    "mtd",
+    "mtext",
+    "menclose",
+    "mspace",
+    "msqrt",
+  ],
+  attributes: {
+    ...defaultSchema.attributes,
+    span: [
+      ...((defaultSchema.attributes && defaultSchema.attributes.span) || []),
+      "className",
+    ],
+    math: [
+      ...((defaultSchema.attributes && defaultSchema.attributes.math) || []),
+      "display",
+    ],
+    mi: [
+      ...((defaultSchema.attributes && defaultSchema.attributes.mi) || []),
+      "mathvariant",
+    ],
+    mtext: [
+      ...((defaultSchema.attributes && defaultSchema.attributes.mtext) || []),
+      "mathvariant",
+    ],
+  },
+};
+
+/**
+ * 归一化数学公式的分隔符，将 \(\) 转换为 $()$，\\[\\] 转换为 $$$$，保证 KaTeX 渲染正常
+ * @param {string} text 
+ * @returns 
+ */
+const normalizeMathDelimiters = (text) => {
+  if (!text) return text;
+  let t = text
+    .replace(/\\\(([\s\S]*?)\\\)/g, (_, inner) => `$${inner}$`)
+    .replace(/\\\[([\s\S]*?)\\\]/g, (_, inner) => `\n\n$$${inner}$$\n\n`);
+  return t;
+};
+
 /**
  * Markdown消息组件，展示Markdown格式的消息内容
  * @param {object} props - 组件属性
@@ -30,15 +91,16 @@ import styles from "./index.module.css";
  * @returns 
  */
 const MarkdownMessage = ({ message, isCompleted, className }) => {
+  const normalized = normalizeMathDelimiters(message);
   return (
     <div className={`${styles["markdown-container"]} ${className}`}>
       <ReactMarkdown
-        // remarkGfm用于解析GitHub Flavored Markdown
         // remarkMath用于解析数学公式
+        // remarkGfm用于解析GitHub Flavored Markdown
         // remarkToc用于解析目录
-        remarkPlugins={[remarkGfm, remarkMath, remarkToc]}
-        // rehypeSanitize用于解析HTML
-        rehypePlugins={[rehypeSanitize]}
+        remarkPlugins={[[remarkMath, { singleDollar: true }], remarkGfm, remarkToc]}
+        // rehypeKatex用于渲染数学公式；rehypeSanitize用于安全过滤（允许 KaTeX 标签）
+        rehypePlugins={[[rehypeKatex, { strict: false, throwOnError: false }], [rehypeSanitize, katexSanitizeSchema]]}
         // 自定义的Markdown组件
         components={{
           pre: ({ children }) => <PreBlock>{children}</PreBlock>,
@@ -84,7 +146,7 @@ const MarkdownMessage = ({ message, isCompleted, className }) => {
           ),
         }}
       >
-        {message}
+        {normalized}
       </ReactMarkdown>
     </div>
   );

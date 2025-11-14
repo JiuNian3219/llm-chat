@@ -3,6 +3,25 @@
   word-break: break-all;
 }
 
+/* 防止 KaTeX 的源码注释被显示为纯文本（兼容 sanitize 后 class 丢失的情况） */
+.markdown-container annotation {
+  display: none !important;
+}
+
+.markdown-container :global(.katex-html) {
+  display: none !important;
+}
+
+.markdown-container :global(.katex-display) {
+  display: block;
+  text-align: center;
+  margin: 12px auto;
+}
+
+.markdown-container :global(.katex) {
+  font-size: 1.05em;
+}
+
 .markdown-container ul,
 .markdown-container ol {
   padding-left: 2em;
