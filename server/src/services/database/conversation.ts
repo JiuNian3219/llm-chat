@@ -5,11 +5,16 @@ import { getMessagesByConversationId } from "./message.js";
 
 /**
  * 在数据库中创建一个新的会话
- * @param {string} conversationId
- * @param {string} title
+ * @param conversationId - 会话ID
+ * @param title - 会话标题
+ * @param titleReady - 标题是否就绪
  * @returns
  */
-export const createConversation = async (conversationId, title, titleReady = false) => {
+export const createConversation = async (
+  conversationId: string,
+  title: string,
+  titleReady: boolean = false
+) => {
   const conversation = new Conversation({
     conversationId,
     title: title,
@@ -24,17 +29,22 @@ export const createConversation = async (conversationId, title, titleReady = fal
  * @returns
  */
 export const getAllConversations = async () => {
-  const conversations = await Conversation.find({}).sort({ updatedAt: -1 }).lean();
+  const conversations = await Conversation.find({})
+    .sort({ updatedAt: -1 })
+    .lean();
   return conversations;
-}
+};
 
 /**
- * 获取会话列表
- * @param {number} pageSize - 每页大小
- * @param {number} page - 页码
+ * 获取分页的会话列表
+ * @param pageSize - 每页大小
+ * @param page - 页码
  * @returns
  */
-export const getConversations = async (pageSize = 20, page = 1) => {
+export const getConversations = async (
+  pageSize: number = 20,
+  page: number = 1
+) => {
   const conversations = await Conversation.find({})
     .sort({ updatedAt: -1 })
     .skip((page - 1) * pageSize)
@@ -45,13 +55,13 @@ export const getConversations = async (pageSize = 20, page = 1) => {
 
 /**
  * 获取分页的会话列表
- * @param {number} pageSize - 每页大小
- * @param {number} page - 页码
+ * @param pageSize - 每页大小
+ * @param page - 页码
  * @returns
  */
 export const getConversationsWithPagination = async (
-  pageSize = 20,
-  page = 1
+  pageSize: number = 20,
+  page: number = 1
 ) => {
   const conversations = await getConversations(pageSize, page);
   const totalCount = await Conversation.countDocuments({});
@@ -65,13 +75,13 @@ export const getConversationsWithPagination = async (
 
 /**
  * 获取会话详情
- * @param {string} conversationId - 会话ID
- * @param {boolean} [populateMessages=false] - 是否填充消息
+ * @param conversationId - 会话ID
+ * @param populateMessages - 是否填充消息
  * @returns
  */
 export const getConversation = async (
-  conversationId,
-  populateMessages = false
+  conversationId: string,
+  populateMessages: boolean = false
 ) => {
   const conversation = await Conversation.findOne({ conversationId }).lean();
   if (!conversation) {
@@ -89,11 +99,14 @@ export const getConversation = async (
 
 /**
  * 更新会话标题
- * @param {string} conversationId - 会话ID
- * @param {string} title - 新标题
+ * @param conversationId - 会话ID
+ * @param title - 新标题
  * @returns
  */
-export const updateConversationTitle = async (conversationId, title) => {
+export const updateConversationTitle = async (
+  conversationId: string,
+  title: string
+) => {
   const conversation = await Conversation.findOneAndUpdate(
     { conversationId },
     { title, titleReady: true },
@@ -107,10 +120,10 @@ export const updateConversationTitle = async (conversationId, title) => {
 
 /**
  * 删除会话
- * @param {string} conversationId - 会话ID
+ * @param conversationId - 会话ID
  * @return
  */
-export const deleteConversation = async (conversationId) => {
+export const deleteConversation = async (conversationId: string) => {
   // 删除会话
   const result = await Conversation.deleteOne({ conversationId });
   if (result.deletedCount === 0) {
@@ -123,9 +136,9 @@ export const deleteConversation = async (conversationId) => {
 
 /**
  * 更新会话时间戳
- * @param {string} conversationId - 会话ID
+ * @param conversationId - 会话ID
  */
-export const updateConversationTimestamp = async (conversationId) => {
+export const updateConversationTimestamp = async (conversationId: string) => {
   // 什么都不改变，只是更新mongodb的updatedAt字段
   await Conversation.updateOne(
     { conversationId },

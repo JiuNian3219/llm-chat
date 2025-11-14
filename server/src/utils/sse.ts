@@ -1,8 +1,10 @@
+import type { Response } from "express";
+
 /**
  * 设置 SSE 响应头
- * @param {import('express').Response} res 
+ * @param res - 响应对象
  */
-export const setupSSE = (res) => {
+export const setupSSE = (res: Response) => {
   res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
@@ -11,19 +13,19 @@ export const setupSSE = (res) => {
 
 /**
  * 发送 SSE 消息
- * @param {import('express').Response} res 
- * @param {Object} data 
+ * @param res - 响应对象
+ * @param data - 消息数据
  */
-export const sendSSEMessage = (res, data) => {
+export const sendSSEMessage = (res: Response, data: unknown) => {
   res.write(`data: ${JSON.stringify(data)}\n\n`);
 };
 
 /**
  * 发送 SSE 错误并结束连接
- * @param {import('express').Response} res 
- * @param {string} errorMsg 
+ * @param res - 响应对象
+ * @param errorMsg - 错误消息
  */
-export const sendSSEError = (res, errorMsg) => {
+export const sendSSEError = (res: Response, errorMsg: string) => {
   sendSSEMessage(res, { type: "error", error: errorMsg });
   res.end();
 };

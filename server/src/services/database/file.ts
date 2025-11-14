@@ -5,15 +5,15 @@ import { FILE_SAVE_TIME } from "../utils/constants.js";
 
 /**
  * 创建文件记录
- * @param {Object} fileData - 文件数据
- * @param {string} fileData.fileId - 文件ID
- * @param {string} fileData.originalname - 原始文件名
- * @param {string} fileData.filename - 存储的文件名
- * @param {string} fileData.mimetype - 文件的MIME类型
- * @param {number} fileData.size - 文件大小（字节）
- * @param {boolean} fileData.isImage - 是否为图片文件
- * @param {string} [fileData.conversationId] - 关联的会话ID
- * @param {string} [fileData.url] - 文件的访问URL
+ * @param fileData - 文件数据
+ * @param fileData.fileId - 文件ID
+ * @param fileData.originalname - 原始文件名
+ * @param fileData.filename - 存储的文件名
+ * @param fileData.mimetype - 文件的MIME类型
+ * @param fileData.size - 文件大小（字节）
+ * @param fileData.isImage - 是否为图片文件
+ * @param fileData.conversationId - 关联的会话ID
+ * @param fileData.url - 文件的访问URL
  */
 export const createFileRecord = async ({
   fileId,
@@ -23,6 +23,16 @@ export const createFileRecord = async ({
   size,
   isImage,
   url = "",
+  conversationId,
+}: {
+  fileId: string;
+  originalname: string;
+  filename: string;
+  mimetype: string;
+  size: number;
+  isImage: boolean;
+  url?: string;
+  conversationId: string;
 }) => {
   const file = new File({
     fileId,
@@ -32,6 +42,7 @@ export const createFileRecord = async ({
     size,
     isImage,
     url,
+    conversationId,
   });
   await file.save();
   return file.toObject();
@@ -39,9 +50,9 @@ export const createFileRecord = async ({
 
 /**
  * 获取文件记录
- * @param {string} fileId - 文件ID
+ * @param fileId - 文件ID
  */
-export const getFileRecord = async (fileId) => {
+export const getFileRecord = async (fileId: string) => {
   const file = await File.findOne({ fileId }).lean();
   if (!file) {
     throw new NotFoundError(`文件不存在`);
@@ -51,9 +62,9 @@ export const getFileRecord = async (fileId) => {
 
 /**
  * 通过fileIds获取文件记录
- * @param {string[]} fileIds - 文件ID数组
+ * @param fileIds - 文件ID数组
  */
-export const getFilesByIds = async (fileIds) => {
+export const getFilesByIds = async (fileIds: string[]) => {
   if (!fileIds || fileIds.length === 0) {
     return [];
   }
@@ -63,9 +74,9 @@ export const getFilesByIds = async (fileIds) => {
 
 /**
  * 删除文件记录
- * @param {string} fileId - 文件ID
+ * @param fileId - 文件ID
  */
-export const deleteFileRecord = async (fileId) => {
+export const deleteFileRecord = async (fileId: string) => {
   const file = await File.findOneAndDelete({ fileId }).lean();
   if (!file) {
     throw new NotFoundError(`文件不存在`);
@@ -88,18 +99,17 @@ export const deleteExpiredFiles = async () => {
     return;
   }
 
-  const fileIds = files.map((file) => file.fileId);
+  const fileIds = files.map((file: any) => file.fileId);
   console.log(`找到 ${files.length} 个过期文件，开始删除...`);
-  await File.updateMany(
-    { fileId: { $in: fileIds } },
-    { isDeleted: true }
-  );
+  await File.updateMany({ fileId: { $in: fileIds } }, { isDeleted: true });
 
-  const { success, failed } = await deleteFiles(files.map((file) => file.filename));
+  const { success, failed } = await deleteFiles(
+    files.map((file: any) => file.filename)
+  );
   if (success.length > 0) {
     console.log(`成功删除 ${success.length} 个文件`);
   }
   if (failed.length > 0) {
     console.error(`删除文件失败: ${failed.join(", ")}`);
   }
-}
+};

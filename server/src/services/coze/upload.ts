@@ -7,12 +7,19 @@ import { client } from "./client.js";
 
 /**
  * 上传文件到 Coze
- * @param {Express.Multer.File} file - 文件对象
+ * @param file - 文件对象
+ * @param conversationId - 会话ID
  * @returns
  */
-export const uploadFile = async (file) => {
+export const uploadFile = async (
+  file: Express.Multer.File,
+  conversationId: string
+) => {
   if (!file) {
     throw new FileUploadError();
+  }
+  if (!conversationId) {
+    throw new FileUploadError("会话ID不能为空");
   }
   const filePath = join(getUploadsDir(), file.filename);
   const fileBuffer = await createReadStream(filePath);
@@ -26,6 +33,7 @@ export const uploadFile = async (file) => {
     size: file.size,
     isImage: isImageFile(file.mimetype),
     url: `/files/${file.filename}`,
+    conversationId,
   });
 
   return {
@@ -38,10 +46,10 @@ export const uploadFile = async (file) => {
 
 /**
  * 取消文件上传
- * @param {string} fileId - 文件ID
+ * @param fileId - 文件ID
  * @returns
  */
-export const cancelFileUpload = async (fileId) => {
+export const cancelFileUpload = async (fileId: string) => {
   try {
     await deleteFileRecord(fileId).catch((error) => {
       if (error.message !== "文件不存在") {

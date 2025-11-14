@@ -33,3 +33,4 @@ dist-ssr
 /server/uploads/*
 
 .env*
+.todo

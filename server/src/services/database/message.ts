@@ -1,16 +1,17 @@
+import type { ContentType } from "@coze/api";
 import Message from "../../models/message.js";
 
 /**
  * 创建消息记录
- * @param {Object} messageData - 消息数据
- * @param {string} messageData.conversationId - 关联的会话ID
- * @param {string} messageData.role - 消息角色, "user" 或 "assistant"
- * @param {string} messageData.content - 消息内容
- * @param {import("@coze/api").ContentType} messageData.contentType - 内容类型, "text", "object_string"
- * @param {string[]} [messageData.followUps] - 后续问题
- * @param {Array} [messageData.files] - 关联的文件列表
- * @param {string} [messageData.chatId] - COZE返回的聊天ID
- * @param {string} [messageData.status] - COZE信息的状态
+ * @param messageData - 消息数据
+ * @param conversationId - 关联的会话ID
+ * @param role - 消息角色, "user" 或 "assistant"
+ * @param content - 消息内容
+ * @param contentType - 内容类型, "text", "object_string"
+ * @param followUps - 后续问题
+ * @param files - 关联的文件列表
+ * @param chatId - COZE返回的聊天ID
+ * @param status - COZE信息的状态
  */
 export const createMessage = async ({
   conversationId,
@@ -21,6 +22,15 @@ export const createMessage = async ({
   files,
   chatId,
   status,
+}: {
+  conversationId: string;
+  role: "user" | "assistant";
+  content: string;
+  contentType: ContentType;
+  followUps?: string[];
+  files?: any[];
+  chatId?: string | null;
+  status?: "normal" | "error";
 }) => {
   const message = new Message({
     conversationId,
@@ -38,9 +48,9 @@ export const createMessage = async ({
 
 /**
  * 获取同会话下的所有消息
- * @param {string} conversationId - 会话ID
+ * @param conversationId - 会话ID
  */
-export const getMessagesByConversationId = async (conversationId) => {
+export const getMessagesByConversationId = async (conversationId: string) => {
   // 获取同一会话下的所有消息，并按创建时间排序，旧的在前，新的在后
   const messages = await Message.find({ conversationId })
     .populate("files")
@@ -51,9 +61,9 @@ export const getMessagesByConversationId = async (conversationId) => {
 
 /**
  * 删除消息记录
- * @param {string} messageId - 消息ID
+ * @param messageId - 消息ID
  */
-export const deleteMessage = async (messageId) => {
+export const deleteMessage = async (messageId: string) => {
   const message = await Message.findOneAndDelete({ messageId });
   if (!message) {
     throw new Error(`消息记录不存在`);

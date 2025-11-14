@@ -1,7 +1,11 @@
 /**
  * 文件上传相关常量
  */
-export const UPLOAD_LIMITS = {
+export const UPLOAD_LIMITS: {
+  fileSize: number;
+  fileCount: number;
+  allowedTypes: string[];
+} = {
   // 单个文件大小限制，单位为字节
   fileSize: 1024 * 1024 * 5,
   // 单次上传文件数量限制
@@ -33,13 +37,13 @@ export const UPLOAD_LIMITS = {
     "image/png",
     "image/gif",
     "image/webp",
-    "image/heic", 
+    "image/heic",
     "image/heif",
     "image/bmp",
     "image/x-photo-cd",
     "image/tiff",
   ],
-};
+} as const;
 
 /**
  * 文件保存时间(30天)
@@ -74,4 +78,4 @@ INTJ
 - 提供一个简洁、准确、易于理解的主题信息。
 - 将本行文字下的所有文字作为输入。
 ## 需要提炼的信息：
-`;
+` as const;
