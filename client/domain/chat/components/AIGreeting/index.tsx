@@ -1,19 +1,31 @@
 import { MessageTwoTone } from "@ant-design/icons";
 import { Flex, Typography } from "antd";
+import type { CSSProperties } from "react";
 import styles from "./index.module.css";
 
 const { Title, Paragraph } = Typography;
 
+interface AIGreetingProps {
+  title: string;
+  description: string;
+  className?: string;
+  style?: CSSProperties;
+}
 /**
  * 显示于AI输入框上方的欢迎组件
- * @param {object} props - 组件属性
- * @param {string} props.title - 标题
- * @param {string} props.description - 描述
- * @param {string} [props.className] - 可选的自定义类名
- * @param {import("react").CSSProperties} [props.style] - 可选的自定义样式
+ * @param props - 组件属性
+ * @param props.title - 标题
+ * @param props.description - 描述
+ * @param props.className - 可选的自定义类名
+ * @param props.style - 可选的自定义样式
  * @returns
  */
-const AIGreeting = ({ title, description, className, style }) => {
+const AIGreeting = ({
+  title,
+  description,
+  className,
+  style,
+}: AIGreetingProps) => {
   return (
     <Flex
       vertical
@@ -32,9 +44,7 @@ const AIGreeting = ({ title, description, className, style }) => {
           {title}
         </Title>
       </Flex>
-      <Paragraph className={styles["description"]}>
-        {description}
-      </Paragraph>
+      <Paragraph className={styles["description"]}>{description}</Paragraph>
     </Flex>
   );
 };

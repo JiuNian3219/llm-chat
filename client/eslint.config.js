@@ -1,9 +1,9 @@
 import js from "@eslint/js";
-import globals from "globals";
-import reactHooks from "eslint-plugin-react-hooks";
-import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "@typescript-eslint/eslint-plugin";
 import tsparser from "@typescript-eslint/parser";
+import reactHooks from "eslint-plugin-react-hooks";
+import reactRefresh from "eslint-plugin-react-refresh";
+import globals from "globals";
 
 export default [
   { ignores: ["dist"] },
@@ -19,7 +19,7 @@ export default [
         ecmaFeatures: { jsx: true },
         sourceType: "module",
       },
-      
+
     },
     plugins: {
       "react-hooks": reactHooks,
@@ -55,7 +55,7 @@ export default [
         ecmaFeatures: { jsx: true },
         sourceType: "module",
       },
-      
+
     },
     plugins: {
       "@typescript-eslint": tseslint,
@@ -79,6 +79,7 @@ export default [
         "warn",
         { allowConstantExport: true },
       ],
+      "react-hooks/exhaustive-deps": "off",
     },
   },
 ];

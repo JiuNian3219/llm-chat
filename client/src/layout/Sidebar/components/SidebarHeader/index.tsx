@@ -7,14 +7,19 @@ import { Button, Flex, Typography } from "antd";
 import styles from "./index.module.css";
 
 const { Title } = Typography;
+
+interface SidebarHeaderProps {
+  collapsed: boolean;
+  onToggleCollapse: (collapsed: boolean) => void;
+}
 /**
  * 侧边栏头部组件，显示Logo和折叠按钮
- * @param {object} props
- * @param {boolean} props.collapsed - 是否折叠
- * @param {function} props.onToggleCollapse - 折叠状态切换函数
+ * @param props - 组件属性
+ * @param props.collapsed - 是否折叠
+ * @param props.onToggleCollapse - 折叠状态切换函数
  * @returns
  */
-const SidebarHeader = ({ collapsed, onToggleCollapse }) => {
+const SidebarHeader = ({ collapsed, onToggleCollapse }: SidebarHeaderProps) => {
   if (collapsed) {
     return (
       <>

@@ -1,4 +1,5 @@
 import IconButton from "@/base/components/IconButton";
+import type { MouseEvent } from "react";
 import { useConversation } from "@/domain/chat/stores/conversationStore";
 import { MoreOutlined } from "@ant-design/icons";
 import { Flex, Skeleton } from "antd";
@@ -66,7 +67,7 @@ const ConversationList = ({ style, className }: ConversationListProps) => {
               className={styles["conversation-item-control"]}
               type="text"
               icon={<MoreOutlined />}
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e: MouseEvent) => e.stopPropagation()}
             />
           </div>
         ))
