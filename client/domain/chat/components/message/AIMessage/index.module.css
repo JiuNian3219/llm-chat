@@ -52,3 +52,9 @@
 .error-text {
   color: #a8071a;
 }
+
+@media (max-width: 768px) {
+  .button-container {
+    opacity: 1;
+  }
+}

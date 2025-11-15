@@ -38,3 +38,9 @@
   padding: 8px;
   color: #909090;
 }
+
+@media (max-width: 768px) {
+  .button-container {
+    opacity: 1;
+  }
+}

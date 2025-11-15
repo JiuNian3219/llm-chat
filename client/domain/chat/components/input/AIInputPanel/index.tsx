@@ -1,4 +1,5 @@
 import IconButton from "@/base/components/IconButton";
+import useIsMobile from "@/base/hooks/useIsMobile";
 import {
   cancelCurrentStream,
   sendStreamMessage,
@@ -43,6 +44,7 @@ const AIInputPanel = ({ callbacks, className, style }: AIInputPanelProps) => {
   const currentChatId = useChatStore((s) => s.currentChatId);
   const isLoadingMessages = useChatStore((s) => s.isLoadingMessages);
   const currentConversationId = useConversation((s) => s.currentConversationId);
+  const isMobile = useIsMobile();
 
   const handleSendMessage = () => {
     if (!message) return;
@@ -76,9 +78,13 @@ const AIInputPanel = ({ callbacks, className, style }: AIInputPanelProps) => {
       <MultilineInput
         value={message}
         onChange={setMessage}
-        placeholder="在这里开始与LLM Chat对话（Ctrl + Enter发送，Enter换行）"
+        placeholder={`在这里开始与LLM Chat对话${!isMobile ? "（Ctrl + Enter发送，Enter换行）" : ""}`}
+        minRows={isMobile ? 1 : 2}
+        maxRows={isMobile ? 6 : 8}
       />
-      <Divider style={{ margin: "6px 0px 12px 0px" }} />
+      <Divider
+        style={{ margin: isMobile ? "4px 0px 8px 0px" : "6px 0px 12px 0px" }}
+      />
       <Flex
         justify="space-between"
         align="center"
@@ -86,6 +92,7 @@ const AIInputPanel = ({ callbacks, className, style }: AIInputPanelProps) => {
         <Select
           defaultValue={options[0].label}
           options={options}
+          size={isMobile ? "small" : undefined}
         ></Select>
         <Flex
           gap={8}
@@ -104,6 +111,7 @@ const AIInputPanel = ({ callbacks, className, style }: AIInputPanelProps) => {
             loading={!currentChatId && !isChatCompleted}
             disabled={isLoadingMessages}
             type="primary"
+            size={isMobile ? "small" : "medium"}
           />
         </Flex>
       </Flex>

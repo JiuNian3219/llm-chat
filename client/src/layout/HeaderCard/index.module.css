@@ -4,9 +4,21 @@
 }
 
 .header {
+  width: 100%;
   position: sticky;
   top: 0;
   display: flex;
   justify-self: center;
   align-items: center;
+  gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .header {
+    justify-content: space-between;
+  }
+
+  :global(.ant-layout-header) {
+    padding: 0 18px;
+  }
 }

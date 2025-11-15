@@ -1,3 +1,4 @@
+import useIsMobile from "@/base/hooks/useIsMobile";
 import AIFooterTip from "@/domain/chat/components/AIFooterTip";
 import AIGreeting from "@/domain/chat/components/AIGreeting";
 import AIInputPanel from "@/domain/chat/components/input/AIInputPanel";
@@ -11,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import styles from "./index.module.css";
 
 const Home = () => {
+  const isMobile = useIsMobile();
   const messageCount = useMessages((s) => s.messageIds.length);
   const [inBottom, setInBottom] = useState(false);
   const [shouldHide, setShouldHide] = useState(false);
@@ -53,14 +55,16 @@ const Home = () => {
   return (
     <Flex
       vertical
-      justify="center"
+      justify={isMobile ? "space-between" : "center"}
       align="center"
       gap="10px"
       className={styles["home-container"]}
     >
+      {/** 移动端下， 让 greeting 组件尽量处于居中位置 */}
+      {isMobile && <div></div>}
       <AIGreeting
         title="你好，我是LLM Chat，很高兴见到你！"
-        description="我可以帮你写代码、读文件、写错各种创意内容，请把你的任务交给我吧~"
+        description="我可以帮你写代码、读文件、写出各种创意内容，请把你的任务交给我吧~"
         style={{
           opacity: inBottom ? "0" : "1",
           height: inBottom ? "0" : "fit-content",
@@ -74,7 +78,10 @@ const Home = () => {
         }}
         className={styles.messages}
       />
-      <Flex vertical>
+      <Flex
+        vertical
+        className={styles["input-panel-box"]}
+      >
         <AIInputPanel
           callbacks={{
             onStart: handleStart,
