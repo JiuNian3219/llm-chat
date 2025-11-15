@@ -46,7 +46,7 @@ const AIMessage = ({ messageId, isLast, className, style }: AIMessageProps) => {
   // 是否展示后续消息，当不是加载中，不是取消，是最后一条消息时展示
   const showFollowUps = !isLoading && !isCancel && !!isLast;
   // 是否展示取消提示，当是取消，是最后一条消息时展示
-  const showCancelTip = !!isCancel && !!isLast;
+  const showCancelTip = !!isCancel;
   const isFollowUpsLoading = followUps.length === 0 && !isChatCompleted;
   const handleCopyMessage = async () => {
     // 如果没有消息则不执行复制操作
@@ -131,7 +131,7 @@ const AIMessage = ({ messageId, isLast, className, style }: AIMessageProps) => {
           align="center"
           className={styles["cancel-message"]}
         >
-          <span>AI已取消当前消息</span>
+          <span>AI已取消继续输出该信息</span>
         </Flex>
       )}
     </Flex>

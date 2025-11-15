@@ -201,8 +201,16 @@ export async function sendStreamMessage({
           useChatStore.getState().setIsChatCompleted(true);
           useChatStore.getState().setCurrentChatId(null);
           useChatStore.getState().setIsFirst(false);
-          const errorText =
-            error?.error || error?.message || "AI对话发生错误，请稍后再试";
+          const msg = error?.error || error?.msg || error?.message || "";
+          const isCanceled =
+            typeof msg === "string" && /对话已取消/.test(msg);
+          if (isCanceled) {
+            useMessages.getState().setLoading(aiMessage.id, false);
+            useMessages.getState().markCancel(aiMessage.id);
+            onError?.(error);
+            return;
+          }
+          const errorText = msg || "AI对话发生错误，请稍后再试";
           useMessages.getState().markError(aiMessage.id, errorText);
           antdMessage.error(errorText);
           onError?.(error);

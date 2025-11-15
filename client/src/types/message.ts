@@ -51,5 +51,5 @@ export interface ServerMessage {
     isImage: boolean;
   }>;
   followUps?: string[];
-  status?: "normal" | "error";
+  status?: "normal" | "error" | "canceled";
 }

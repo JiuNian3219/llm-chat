@@ -30,7 +30,7 @@ export const createMessage = async ({
   followUps?: string[];
   files?: any[];
   chatId?: string | null;
-  status?: "normal" | "error";
+  status?: "normal" | "error" | "canceled";
 }) => {
   const message = new Message({
     conversationId,
@@ -68,4 +68,30 @@ export const deleteMessage = async (messageId: string) => {
   if (!message) {
     throw new Error(`消息记录不存在`);
   }
+};
+
+export const markChatCanceled = async (
+  conversationId: string,
+  chatId: string
+) => {
+  if (!conversationId || !chatId) return;
+  const existing = await Message.findOne({
+    conversationId,
+    chatId,
+    role: "assistant",
+  });
+  if (existing) {
+    await Message.updateOne({ _id: existing._id }, { $set: { status: "canceled" } });
+    return;
+  }
+  const message = new Message({
+    conversationId,
+    chatId,
+    role: "assistant",
+    content: "",
+    contentType: "text",
+    followUps: [],
+    status: "canceled",
+  });
+  await message.save();
 };

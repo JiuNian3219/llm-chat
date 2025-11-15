@@ -10,9 +10,15 @@ import {
   updateConversationTitle,
 } from "../database/conversation.js";
 import { getFilesByIds } from "../database/file.js";
-import { createMessage } from "../database/message.js";
+import { createMessage, markChatCanceled } from "../database/message.js";
 import { INFORMATION_REFINER_PROMPT } from "../utils/constants.js";
 import { client, getBotId } from "./client.js";
+
+// 取消中的聊天记录，键为 `${conversationId}:${chatId}`
+const canceledChats = new Set<string>();
+function makeKey(conversationId?: string | null, chatId?: string | null) {
+  return `${conversationId || ''}:${chatId || ''}`;
+}
 
 interface MessageInfo {
   conversationId: string;
@@ -121,6 +127,22 @@ export async function streamChat(
     followUps: [],
   };
 
+  async function saveCanceledMessage(info: MessageInfo) {
+    try {
+      await createMessage({
+        conversationId: info.conversationId,
+        role: "assistant",
+        content: info.fullContent,
+        contentType: "text",
+        chatId: info.chatId,
+        followUps: info.followUps,
+        status: "canceled",
+      });
+    } catch (e) {
+      console.error("保存取消消息失败:", e);
+    }
+  }
+
   try {
     for await (const part of chatResponse) {
       switch (part.event) {
@@ -130,6 +152,13 @@ export async function streamChat(
           break;
         case ChatEventType.CONVERSATION_MESSAGE_DELTA:
           messageInfo.chatId = part.data.chat_id;
+          // 若已被取消，则终止流并不保存
+          if (canceledChats.has(makeKey(messageInfo.conversationId, messageInfo.chatId))) {
+            canceledChats.delete(makeKey(messageInfo.conversationId, messageInfo.chatId));
+            await saveCanceledMessage(messageInfo);
+            onError?.({ msg: "对话已取消" });
+            return;
+          }
           messageInfo.fullContent += part.data.content;
           onMessage?.(part.data);
           break;
@@ -142,6 +171,13 @@ export async function streamChat(
           }
           break;
         case ChatEventType.DONE:
+          // DONE 前再次判断是否已取消
+          if (canceledChats.has(makeKey(messageInfo.conversationId, messageInfo.chatId))) {
+            canceledChats.delete(makeKey(messageInfo.conversationId, messageInfo.chatId));
+            await saveCanceledMessage(messageInfo);
+            onError?.({ msg: "对话已取消" });
+            return;
+          }
           onDone?.({ content: messageInfo.fullContent });
           saveAIMessage(messageInfo).catch((error) => {
             console.error("保存AI消息失败:", error);
@@ -176,7 +212,12 @@ export async function streamChat(
  * @param conversationId - 会话ID
  */
 export async function cancelChat(chatId: string, conversationId: string) {
+  // 先标记为已取消，避免流式继续入库
+  canceledChats.add(makeKey(conversationId, chatId));
   const chatResponse = await client.chat.cancel(conversationId, chatId);
+  if ((chatResponse as any)?.status === "canceled") {
+    await markChatCanceled(conversationId, chatId);
+  }
   return chatResponse;
 }
 

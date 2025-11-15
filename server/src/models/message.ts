@@ -27,7 +27,7 @@ const messageSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["normal", "error"],
+      enum: ["normal", "error", "canceled"],
       default: "normal",
     },
     files: [

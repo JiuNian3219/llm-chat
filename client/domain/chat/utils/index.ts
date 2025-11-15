@@ -125,7 +125,7 @@ export function formatServerMessages(messages: ServerMessage[]): ChatMessage[] {
       content,
       followUps,
       isLoading: false,
-      isCancel: false,
+      isCancel: status === "canceled",
       isError: status === "error",
       files: [] as ChatFile[],
     };
