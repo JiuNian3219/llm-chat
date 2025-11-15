@@ -85,9 +85,10 @@ function streamChatByCoze(
     return () => {
       controller.abort();
     };
-  } catch (error) {
-    // 暂时还没做好系统的错误处理
-    console.error("流式聊天请求错误:", error);
+  } catch (error: any) {
+    const message = error?.message || "AI对话发生错误，请稍后再试";
+    callbacks?.onError?.({ message });
+    return;
   }
 }
 
