@@ -10,6 +10,8 @@ import {
   getAllConversations,
   getConversation,
   getConversationsWithPagination,
+  updateConversationTitle,
+  deleteConversation,
 } from "../services/database/conversation.js";
 import {
   CustomError,
@@ -262,5 +264,42 @@ export const getConversationHandler = asyncHandler(
       throw new NotFoundError("会话不存在");
     }
     success(res, { conversation });
+  }
+);
+
+/**
+ * 更新会话标题
+ * @param req - 请求对象
+ * @param res - 响应对象
+ */
+export const updateConversationTitleHandler = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { title } = req.body as any;
+    if (!id) {
+      throw new Error("会话ID不能为空");
+    }
+    const newTitle = (title || "").trim();
+    if (!newTitle) {
+      throw new ValidationError("标题不能为空");
+    }
+    const conversation = await updateConversationTitle(id, newTitle);
+    success(res, { conversation });
+  }
+);
+
+/**
+ * 删除会话（及其消息）
+ * @param req - 请求对象
+ * @param res - 响应对象
+ */
+export const deleteConversationHandler = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    if (!id) {
+      throw new Error("会话ID不能为空");
+    }
+    await deleteConversation(id);
+    success(res, { ok: true });
   }
 );

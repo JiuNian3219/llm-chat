@@ -6,6 +6,8 @@ import {
     getConversationsHandler,
     getConversationsWithPaginationHandler,
     getConversationTitleHandler,
+    updateConversationTitleHandler,
+    deleteConversationHandler,
     nonStreamChatHandler,
     streamChatHandler,
     uploadFileHandler,
@@ -32,6 +34,10 @@ router.get("/conversation/all", getConversationsHandler);
 router.get("/conversation/:id", getConversationHandler);
 
 router.get("/conversation/:id/title", getConversationTitleHandler);
+
+router.put("/conversation/:id/title", updateConversationTitleHandler);
+
+router.delete("/conversation/:id", deleteConversationHandler);
 
 
 export default router;

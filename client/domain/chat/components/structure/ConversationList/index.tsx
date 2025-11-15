@@ -1,9 +1,17 @@
 import IconButton from "@/base/components/IconButton";
-import type { MouseEvent } from "react";
+import { resetChatFlow } from "@/domain/chat/services/chatService";
 import { useConversation } from "@/domain/chat/stores/conversationStore";
 import { MoreOutlined } from "@ant-design/icons";
-import { Flex, Skeleton } from "antd";
-import type { CSSProperties } from "react";
+import {
+  Dropdown,
+  Flex,
+  Input,
+  Modal,
+  Skeleton,
+  message as antdMessage,
+} from "antd";
+import type { CSSProperties, MouseEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "./index.module.css";
 
@@ -25,10 +33,71 @@ const ConversationList = ({ style, className }: ConversationListProps) => {
   const isLoadingList = useConversation((s) => s.isLoadingList);
   const navigate = useNavigate();
 
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState<string>("");
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  useEffect(() => {
+    if (editingId && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [editingId]);
+
   const handleConversationClick = (id: string) => {
     // 如果点击的会话已经是当前会话，则不进行跳转
     if (id === currentConversationId) return;
     navigate(`/chat/${id}`, { replace: true });
+  };
+
+  const beginRename = (id: string) => {
+    const conv = useConversation
+      .getState()
+      .conversations.find((c) => c.conversationId === id);
+    setEditingId(id);
+    setEditingTitle(conv?.title || "");
+    setMenuOpenId(null);
+  };
+
+  const commitRename = async (id: string, newTitleRaw: string) => {
+    const newTitle = (newTitleRaw || "").trim().slice(0, 30) || "新对话";
+    try {
+      await useConversation.getState().renameConversation(id, newTitle);
+      antdMessage.success("已重命名");
+    } catch (error: any) {
+      antdMessage.error(error?.message || "重命名失败，请稍后再试");
+    } finally {
+      setEditingId(null);
+    }
+  };
+
+  const confirmDelete = (id: string) => {
+    setMenuOpenId(null);
+    const conv = useConversation
+      .getState()
+      .conversations.find((c) => c.conversationId === id);
+    const convTitle = (conv?.title || "新会话").trim();
+    Modal.confirm({
+      title: "确认删除该会话？",
+      content: `确定删除“${convTitle}”？删除后不可恢复。`,
+      okText: "删除",
+      okType: "danger",
+      cancelText: "取消",
+      onOk: async () => {
+        try {
+          const wasCurrent =
+            useConversation.getState().currentConversationId === id;
+          await useConversation.getState().deleteConversationAsync(id);
+          if (wasCurrent) {
+            resetChatFlow();
+            navigate("/", { replace: true });
+          }
+          antdMessage.success("已删除会话");
+        } catch (error: any) {
+          antdMessage.error(error?.message || "删除失败，请稍后再试");
+        }
+      },
+    });
   };
 
   // 渲染骨架屏
@@ -59,16 +128,53 @@ const ConversationList = ({ style, className }: ConversationListProps) => {
             className={`${styles["conversation-item"]} ${currentConversationId === conversationId ? styles["selected"] : ""}`}
             onClick={() => handleConversationClick(conversationId)}
           >
-            <span className={styles["conversation-item-title"]}>
-              {title || "新会话"}
-            </span>
-            {/** 暂时未加入编辑选项 */}
-            <IconButton
-              className={styles["conversation-item-control"]}
-              type="text"
-              icon={<MoreOutlined />}
-              onClick={(e: MouseEvent) => e.stopPropagation()}
-            />
+            {editingId === conversationId ? (
+              <Input
+                ref={inputRef as any}
+                value={editingTitle}
+                className={styles["conversation-item-title"]}
+                onClick={(e) => e.stopPropagation()}
+                maxLength={30}
+                onChange={(e) => setEditingTitle(e.target.value)}
+                onBlur={() => commitRename(conversationId, editingTitle)}
+                onPressEnter={() => commitRename(conversationId, editingTitle)}
+              />
+            ) : (
+              <span
+                title={title}
+                className={styles["conversation-item-title"]}
+              >
+                {title || "新会话"}
+              </span>
+            )}
+            <Dropdown
+              trigger={["click"]}
+              open={menuOpenId === conversationId}
+              onOpenChange={(open) =>
+                setMenuOpenId(open ? conversationId : null)
+              }
+              menu={{
+                items: [
+                  { key: "rename", label: "重命名" },
+                  { key: "delete", label: "删除" },
+                ],
+                onClick: (info) => {
+                  info.domEvent?.stopPropagation();
+                  if (info.key === "rename") {
+                    beginRename(conversationId);
+                  } else if (info.key === "delete") {
+                    confirmDelete(conversationId);
+                  }
+                },
+              }}
+            >
+              <IconButton
+                className={styles["conversation-item-control"]}
+                type="text"
+                icon={<MoreOutlined />}
+                onClick={(e: MouseEvent) => e.stopPropagation()}
+              />
+            </Dropdown>
           </div>
         ))
       ) : (

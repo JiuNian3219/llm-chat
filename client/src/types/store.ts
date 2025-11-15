@@ -123,4 +123,7 @@ export interface ConversationActions {
   fetchCurrentTitle: (_conversationId: string) => Promise<void>;
   addNewConversation: (_conversationId: string, _title?: string) => void;
   updateConversationTitle: (_conversationId: string, _newTitle: string) => void;
+  removeConversation: (_conversationId: string) => void;
+  renameConversation: (_conversationId: string, _newTitle: string) => Promise<void>;
+  deleteConversationAsync: (_conversationId: string) => Promise<void>;
 }

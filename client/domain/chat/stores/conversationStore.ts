@@ -72,5 +72,33 @@ export const useConversation = create<ConversationState & ConversationActions>(
             : state.currentTitle,
       }));
     },
+    renameConversation: async (conversationId, newTitle) => {
+      const title = (newTitle || "").trim().slice(0, 30) || "新对话";
+      await server.updateConversationTitle(conversationId, title);
+      get().updateConversationTitle(conversationId, title);
+    },
+    deleteConversationAsync: async (conversationId) => {
+      await server.deleteConversation(conversationId);
+      const isCurrent = get().currentConversationId === conversationId;
+      set((state) => ({
+        conversations: state.conversations.filter(
+          (conv) => conv.conversationId !== conversationId
+        ),
+        currentConversationId: isCurrent ? null : state.currentConversationId,
+        currentTitle: isCurrent ? "" : state.currentTitle,
+      }));
+    },
+    removeConversation: (conversationId) => {
+      set((state) => {
+        const isCurrent = state.currentConversationId === conversationId;
+        return {
+          conversations: state.conversations.filter(
+            (conv) => conv.conversationId !== conversationId
+          ),
+          currentConversationId: isCurrent ? null : state.currentConversationId,
+          currentTitle: isCurrent ? "" : state.currentTitle,
+        };
+      });
+    },
   })
 );

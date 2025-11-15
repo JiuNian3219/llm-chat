@@ -15,6 +15,8 @@ interface CozeAPI {
   conversationAll: Endpoint;
   conversationDetail: Endpoint;
   conversationTitle: Endpoint;
+  conversationUpdateTitle: Endpoint;
+  conversationDelete: Endpoint;
 }
 
 const coze: CozeAPI = {
@@ -29,6 +31,14 @@ const coze: CozeAPI = {
   conversationTitle: {
     url: `${COZE_BASE}/conversation/{id}/title`,
     method: "GET",
+  },
+  conversationUpdateTitle: {
+    url: `${COZE_BASE}/conversation/{id}/title`,
+    method: "PUT",
+  },
+  conversationDelete: {
+    url: `${COZE_BASE}/conversation/{id}`,
+    method: "DELETE",
   },
 };
 

@@ -3,7 +3,7 @@ import IconButton from "@/base/components/IconButton";
 import useCopyToClipboard from "@/domain/chat/hooks/useCopyToClipboard";
 import { useChatStore } from "@/domain/chat/stores/chatStore";
 import { useMessages } from "@/domain/chat/stores/messageStore";
-import { SyncOutlined, WarningOutlined } from "@ant-design/icons";
+import { WarningOutlined } from "@ant-design/icons";
 import { Flex, Spin } from "antd";
 import type { CSSProperties } from "react";
 import { memo } from "react";
@@ -89,13 +89,6 @@ const AIMessage = ({ messageId, isLast, className, style }: AIMessageProps) => {
                     icon={getCopyIcon()}
                     onClick={handleCopyMessage}
                     className={styles["copy-button"]}
-                  />
-                  <IconButton
-                    type="text"
-                    shape="default"
-                    size="small"
-                    icon={<SyncOutlined />}
-                    className={styles["reload-button"]}
                   />
                 </Flex>
               )}

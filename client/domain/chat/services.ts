@@ -237,6 +237,32 @@ function getConversationTitle(conversationId: string) {
   });
 }
 
+/**
+ * 更新会话标题
+ * @param conversationId - 会话ID
+ * @param title - 新标题
+ */
+function updateConversationTitle(conversationId: string, title: string) {
+  const { url, method } = coze.conversationUpdateTitle;
+  return request(url, {
+    method,
+    params: { id: conversationId },
+    data: { title },
+  });
+}
+
+/**
+ * 删除会话
+ * @param conversationId - 会话ID
+ */
+function deleteConversation(conversationId: string) {
+  const { url, method } = coze.conversationDelete;
+  return request(url, {
+    method,
+    params: { id: conversationId },
+  });
+}
+
 export default {
   streamChatByCoze,
   nonStreamChatByCoze,
@@ -247,4 +273,6 @@ export default {
   getConversationList,
   getConversationDetail,
   getConversationTitle,
+  updateConversationTitle,
+  deleteConversation,
 };
