@@ -1,7 +1,7 @@
 import useIsMobile from "@/base/hooks/useIsMobile";
 import { useAppStore } from "@/src/stores/appStore";
 import { Flex, Layout } from "antd";
-import type { CSSProperties } from "react";
+import { useEffect, type CSSProperties } from "react";
 import SidebarContent from "./components/SidebarContent";
 import SidebarHeader from "./components/SidebarHeader";
 import styles from "./index.module.css";
@@ -23,6 +23,16 @@ const Sidebar = ({ style, className }: SidebarProps) => {
   const isMobile = useIsMobile();
   const isSidebarOpen = useAppStore((s) => s.isSidebarOpen);
   const toggleSidebar = useAppStore((s) => s.toggleSidebar);
+  const openSidebar = useAppStore((s) => s.openSidebar);
+  const closeSidebar = useAppStore((s) => s.closeSidebar);
+
+  useEffect(() => {
+    if (!isMobile) {
+      openSidebar();
+    } else {
+      closeSidebar();
+    }
+  }, [isMobile]);
   return (
     <>
       {isMobile && isSidebarOpen && (
