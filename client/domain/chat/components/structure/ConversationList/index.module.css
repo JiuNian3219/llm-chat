@@ -66,3 +66,13 @@
 .conversation-item-control:hover {
   color: #1d4ed8;
 }
+
+@media (max-width: 768px) {
+  .conversation-item-control {
+    display: block;
+  }
+
+  .conversation-item.selected .conversation-item-control {
+    color: #1d4ed8;
+  }
+}
