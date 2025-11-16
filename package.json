@@ -4,7 +4,10 @@
   "scripts": {
     "start:client": "cd client && npm run dev",
     "start:server": "cd server && npm run dev",
-    "start": "concurrently \"npm run start:server\" \"npm run start:client\""
+    "build:client": "cd client && npm run build",
+    "preview:client": "cd client && npm run preview",
+    "start": "concurrently \"npm run start:server\" \"npm run start:client\"",
+    "preview": "concurrently \"npm run start:server\" \"npm run preview:client\""
   },
   "keywords": [],
   "author": "",
