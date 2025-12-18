@@ -21,6 +21,8 @@ import {
 } from "../utils/error.js";
 import { error, success } from "../utils/response.js";
 import { sendSSEError, sendSSEMessage, setupSSE } from "../utils/sse.js";
+import { getSnapshot } from "../services/stream/hub.js";
+import { redisSub, channelForConversation } from "../config/redis.js";
 
 /**
  * 处理非流式聊天请求
@@ -106,6 +108,74 @@ export const streamChatHandler = asyncHandler(
         sendSSEError(res, error.message || "对话服务暂时不可用");
       }
     }
+  }
+);
+
+/**
+ * 订阅指定会话的流式输出（断线重连 / 刷新后续播）
+ * @param req - 请求对象
+ * @param res - 响应对象
+ */
+export const subscribeChatHandler = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { conversationId } = req.body;
+    if (!conversationId) {
+      throw new ValidationError("会话ID不能为空");
+    }
+    setupSSE(res);
+
+    const snapshot = await getSnapshot(conversationId);
+    sendSSEMessage(res, { type: "start", conversationId });
+    if (snapshot.content) {
+      sendSSEMessage(res, { type: "message", content: snapshot.content });
+    }
+    if (snapshot.status === "completed") {
+      sendSSEMessage(res, { type: "completed", content: snapshot.content || "" });
+    }
+    if (snapshot.status === "done") {
+      sendSSEMessage(res, { type: "done", content: snapshot.content || "" });
+      return res.end();
+    }
+    if (snapshot.status === "error") {
+      sendSSEError(res, "对话服务暂时不可用");
+      return;
+    }
+
+    const channel = channelForConversation(conversationId);
+    const sub = redisSub.duplicate();
+    await sub.subscribe(channel);
+
+    const onMessage = (message: string) => {
+      try {
+        const data = JSON.parse(message);
+        if (data.type === "error") {
+          sendSSEError(res, data.error || "对话服务暂时不可用");
+          sub.unsubscribe(channel);
+          return;
+        }
+        if (data.type === "done") {
+          sendSSEMessage(res, { type: "done", content: snapshot.content || "" });
+          sub.unsubscribe(channel);
+          res.end();
+          return;
+        }
+        sendSSEMessage(res, data);
+      } catch (e) {
+        console.error("订阅消息解析失败:", e);
+      }
+    };
+
+    sub.on("message", (chan: string, msg: string) => {
+      if (chan === channel) onMessage(msg);
+    });
+
+    req.on("close", () => {
+      try {
+        sub.unsubscribe(channel);
+        sub.removeAllListeners("message");
+        sub.disconnect();
+      } catch {}
+    });
   }
 );
 

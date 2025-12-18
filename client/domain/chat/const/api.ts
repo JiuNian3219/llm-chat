@@ -7,6 +7,7 @@ export interface Endpoint {
 }
 interface CozeAPI {
   streamingChat: Endpoint;
+  subscribeChat: Endpoint;
   nonStreamingChat: Endpoint;
   cancelChat: Endpoint;
   upload: Endpoint;
@@ -21,6 +22,7 @@ interface CozeAPI {
 
 const coze: CozeAPI = {
   streamingChat: { url: `${COZE_BASE}/chat/stream`, method: "POST" },
+  subscribeChat: { url: `${COZE_BASE}/chat/subscribe`, method: "POST" },
   nonStreamingChat: { url: `${COZE_BASE}/chat/nonStream`, method: "POST" },
   cancelChat: { url: `${COZE_BASE}/chat/cancel`, method: "POST" },
   upload: { url: `${COZE_BASE}/upload`, method: "POST" },

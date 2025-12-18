@@ -98,6 +98,7 @@ export interface ConversationState {
     conversationId: string;
     title: string;
     updatedAt: Date | string;
+    inProgress?: boolean;
   }>;
   currentConversationId: string | null;
   currentTitle: string;

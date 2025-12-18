@@ -25,6 +25,7 @@ export interface ChatMessage {
   chatId: string | null;
   conversationId?: string;
   isLoading?: boolean;
+  isTextCompleted?: boolean;
   isCancel?: boolean;
   isError?: boolean;
   followUps?: string[];

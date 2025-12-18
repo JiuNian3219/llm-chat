@@ -19,6 +19,7 @@ export const createConversation = async (
     conversationId,
     title: title,
     titleReady,
+    inProgress: false,
   });
   await conversation.save();
   return conversation.toObject();
@@ -144,4 +145,18 @@ export const updateConversationTimestamp = async (conversationId: string) => {
     { conversationId },
     { $currentDate: { updatedAt: true } }
   );
+};
+
+export const setConversationInProgress = async (
+  conversationId: string,
+  inProgress: boolean
+) => {
+  const result = await Conversation.updateOne(
+    { conversationId },
+    { inProgress }
+  );
+  if (result?.matchedCount === 0) {
+    throw new NotFoundError(`会话不存在`);
+  }
+  return true;
 };

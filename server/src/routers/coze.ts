@@ -11,6 +11,7 @@ import {
     nonStreamChatHandler,
     streamChatHandler,
     uploadFileHandler,
+    subscribeChatHandler,
 } from "../controllers/coze.js";
 import { uploadMiddleware } from "../middleware/upload.js";
 
@@ -18,6 +19,8 @@ import { uploadMiddleware } from "../middleware/upload.js";
 const router = express.Router();
 
 router.post("/chat/stream", streamChatHandler);
+
+router.post("/chat/subscribe", subscribeChatHandler);
 
 router.post("/chat/nonStream", nonStreamChatHandler);
 

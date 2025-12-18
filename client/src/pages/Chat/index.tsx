@@ -9,7 +9,7 @@ import { useConversation } from "@/domain/chat/stores/conversationStore";
 import { ArrowDownOutlined } from "@ant-design/icons";
 import { Flex, Spin, theme } from "antd";
 import { useEffect, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import styles from "./index.module.css";
 
 const Chat = () => {
@@ -19,7 +19,6 @@ const Chat = () => {
 
   const isChatCompleted = useChatStore((s) => s.isChatCompleted);
   const isLoadingMessages = useChatStore((s) => s.isLoadingMessages);
-  const navigate = useNavigate();
   const { conversationId } = useParams();
 
   const boxRef = useRef<HTMLElement | null>(null);
@@ -46,9 +45,6 @@ const Chat = () => {
 
   useEffect(() => {
     if (!conversationId) {
-      navigate("/", {
-        replace: true,
-      });
       return;
     }
     // 更新会话状态与标题，并加载会话消息
@@ -63,6 +59,7 @@ const Chat = () => {
   return (
     <Flex
       vertical
+      justify="center"
       align="center"
       className={styles["chat-container"]}
       ref={boxRef}
@@ -74,7 +71,7 @@ const Chat = () => {
           align="center"
           flex={1}
         >
-          <Spin style={{}} />
+          <Spin />
         </Flex>
       ) : (
         <ChatMessages className={styles.messages} />

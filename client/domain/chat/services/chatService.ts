@@ -72,10 +72,84 @@ export async function loadConversationMessages(conversationId: string | null) {
     const { conversation } = response.data || {};
     const serverMessages = conversation?.messages || [];
     useMessages.getState().setFromServer(formatServerMessages(serverMessages));
+
+    if (conversation?.inProgress) {
+      const aiMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: "",
+        followUps: [],
+        isLoading: true,
+        isTextCompleted: false,
+        isCancel: false,
+        chatId: null,
+        conversationId,
+      };
+      useMessages.getState().append(aiMessage);
+      useChatStore.getState().setIsChatCompleted(false);
+
+      const cancelFn = server.subscribeChatByConversation(conversationId, {
+        onStart: (_data: any) => {
+          void 0;
+        },
+        onMessage: (data: any) => {
+          const chatState = useChatStore.getState();
+          if (data.chatId && data.chatId !== chatState.currentChatId) {
+            useChatStore.getState().setCurrentChatId(data.chatId);
+            useMessages.getState().setChatId(aiMessage.id, data.chatId);
+          }
+          const delta = data?.content || "";
+          if (delta) {
+            useMessages.getState().appendContent(aiMessage.id, delta);
+          }
+        },
+        onCompleted: (_data: any) => {
+          useMessages.getState().patch(aiMessage.id, {
+            isLoading: false,
+            isTextCompleted: true,
+          });
+        },
+        onFollowUp: (data: any) => {
+          if (data?.content) {
+            useMessages.getState().addFollowUp(aiMessage.id, data.content);
+          }
+        },
+        onDone: (_data: any) => {
+          setTimeout(() => {
+            useChatStore.getState().setIsChatCompleted(true);
+            useChatStore.getState().setCurrentChatId(null);
+          }, 1000);
+          useMessages.getState().setLoading(aiMessage.id, false);
+          useChatStore.getState().clearCancelStreamRef();
+          const {
+            currentConversationId,
+            refreshConversations,
+            fetchCurrentTitle,
+          } = useConversation.getState();
+          refreshConversations?.();
+          fetchCurrentTitle?.(currentConversationId!);
+        },
+        onError: (error: any) => {
+          useChatStore.getState().clearCancelStreamRef();
+          useChatStore.getState().setIsChatCompleted(true);
+          useChatStore.getState().setCurrentChatId(null);
+          const msg = error?.error || error?.msg || error?.message || "";
+          const errorText = msg || "AI对话发生错误，请稍后再试";
+          useMessages.getState().markError(aiMessage.id, errorText);
+          antdMessage.error(errorText);
+        },
+      });
+      useChatStore.getState().setCancelStreamRef(cancelFn || null);
+    }
   } catch (error: any) {
-    console.error("获取会话消息失败:", error);
-    antdMessage.error("获取会话消息失败，请稍后再试");
+    const msg = error?.message || "";
     useMessages.getState().reset();
+    if (/会话不存在/.test(msg)) {
+      throw error;
+    } else {
+      console.error("获取会话消息失败:", error);
+      antdMessage.error("获取会话消息失败，请稍后再试");
+    }
   } finally {
     useChatStore.getState().setIsLoadingMessages(false);
   }
@@ -108,6 +182,27 @@ export async function sendStreamMessage({
 }) {
   const trimmedMessage = message?.trim();
   if (!trimmedMessage) return;
+  // 并发拦截：同一会话在进行中时前置校验，不追加本地消息
+  {
+    const currentId =
+      conversationId || useConversation.getState().currentConversationId;
+    if (currentId) {
+      await server
+        .getConversationDetail(currentId)
+        .then(({ data }) => {
+          const inProgress = !!data?.conversation?.inProgress;
+          if (inProgress) {
+            antdMessage.warning("该会话正在生成中，请稍后再试");
+            throw new Error("BLOCK_SEND");
+          }
+        })
+        .catch((e) => {
+          if (String(e?.message || "") === "BLOCK_SEND") {
+            throw e;
+          }
+        });
+    }
+  }
   const files = attachments || useChatStore.getState().files || [];
 
   const userMessage: ChatMessage = {
@@ -126,6 +221,7 @@ export async function sendStreamMessage({
     content: "",
     followUps: [],
     isLoading: true,
+    isTextCompleted: false,
     isCancel: false,
     chatId: null,
   };
@@ -172,7 +268,10 @@ export async function sendStreamMessage({
           onMessage?.(data);
         },
         onCompleted: (data) => {
-          useMessages.getState().setLoading(aiMessage.id, false);
+          useMessages.getState().patch(aiMessage.id, {
+            isLoading: false,
+            isTextCompleted: true,
+          });
           onCompleted?.(data);
         },
         onFollowUp: (data) => {
@@ -184,6 +283,7 @@ export async function sendStreamMessage({
             useChatStore.getState().setIsChatCompleted(true);
             useChatStore.getState().setCurrentChatId(null);
           }, 1000);
+          useMessages.getState().setLoading(aiMessage.id, false);
           useChatStore.getState().clearCancelStreamRef();
           useChatStore.getState().setIsFirst(false);
           // 完成后刷新会话列表与标题

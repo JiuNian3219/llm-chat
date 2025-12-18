@@ -8,6 +8,7 @@ export interface ConversationListItem {
   conversationId: string;
   title: string;
   updatedAt: string | Date;
+  inProgress?: boolean;
 }
 
 /**
@@ -31,5 +32,6 @@ export interface ConversationDetailResponse {
     conversationId: string;
     title?: string;
     messages?: any[];
+    inProgress?: boolean;
   };
 }

@@ -93,6 +93,73 @@ function streamChatByCoze(
 }
 
 /**
+ * 订阅会话的流式输出（刷新/切换后续播）
+ * @param conversationId - 会话ID
+ * @param callbacks - 回调函数
+ */
+function subscribeChatByConversation(
+  conversationId: string,
+  callbacks: StreamChatCallbacks
+) {
+  try {
+    const { onStart, onMessage, onCompleted, onFollowUp, onDone, onError } =
+      callbacks;
+    if (!conversationId) {
+      throw new Error("conversationId不能为空");
+    }
+    const { url, method } = coze.subscribeChat;
+    const controller = new AbortController();
+
+    fetchEventSource(`${(import.meta as any).env.VITE_API_BASE_URL}${url}`, {
+      method,
+      body: JSON.stringify({ conversationId }),
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "text/event-stream",
+      },
+      openWhenHidden: true,
+      signal: controller.signal,
+      onmessage: (event) => {
+        const data = JSON.parse(event.data);
+        switch (data.type) {
+          case "start":
+            onStart && onStart(data);
+            break;
+          case "message":
+            onMessage && onMessage(data);
+            break;
+          case "completed":
+            onCompleted && onCompleted(data);
+            break;
+          case "follow_up":
+            onFollowUp && onFollowUp(data);
+            break;
+          case "done":
+            onDone && onDone(data);
+            controller.abort();
+            break;
+          case "error":
+            onError && onError(data);
+            controller.abort();
+            break;
+        }
+      },
+      onerror: (error) => {
+        onError && onError(error);
+        controller.abort();
+      },
+    });
+    return () => {
+      controller.abort();
+    };
+  } catch (error: any) {
+    const message = error?.message || "订阅会话输出失败，请稍后再试";
+    callbacks?.onError?.({ message });
+    return;
+  }
+}
+
+/**
  * 执行非流式的聊天请求
  * @param content - 用户输入的内容
  * @param contentType - 内容类型, "text", "object_string"
@@ -265,6 +332,7 @@ function deleteConversation(conversationId: string) {
 
 export default {
   streamChatByCoze,
+  subscribeChatByConversation,
   nonStreamChatByCoze,
   cancelChatByCoze,
   uploadFileByCoze,

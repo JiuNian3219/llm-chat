@@ -6,18 +6,29 @@ import {
 } from "@coze/api";
 import {
   createConversation,
+  setConversationInProgress,
   updateConversationTimestamp,
   updateConversationTitle,
 } from "../database/conversation.js";
 import { getFilesByIds } from "../database/file.js";
 import { createMessage, markChatCanceled } from "../database/message.js";
+import {
+  appendDelta,
+  publishCompleted,
+  publishDone,
+  publishError,
+  publishFollowUp,
+  publishReasoning,
+  publishStart,
+} from "../stream/hub.js";
 import { INFORMATION_REFINER_PROMPT } from "../utils/constants.js";
 import { client, getBotId } from "./client.js";
+import { getSnapshot } from "../stream/hub.js";
 
 // 取消中的聊天记录，键为 `${conversationId}:${chatId}`
 const canceledChats = new Set<string>();
 function makeKey(conversationId?: string | null, chatId?: string | null) {
-  return `${conversationId || ''}:${chatId || ''}`;
+  return `${conversationId || ""}:${chatId || ""}`;
 }
 
 interface MessageInfo {
@@ -92,8 +103,18 @@ export async function streamChat(
     // 如果没有提供会话ID，则创建一个新的会话
     conversationId = await createNewConversation(content);
   }
+  // 并发拦截：同一会话在进行中或文本已完成但尚未结束时，拒绝新的流式请求
+  if (conversationId) {
+    const snapshot = await getSnapshot(conversationId);
+    if (snapshot.status === "in_progress" || snapshot.status === "completed") {
+      callbacks.onError?.({ msg: "该会话正在生成中，请稍后再试" });
+      throw new Error("该会话正在生成中，请稍后再试");
+    }
+  }
   // 更新会话的时间戳，使其在会话列表的最上方
   await updateConversationTimestamp(conversationId);
+  await setConversationInProgress(conversationId, true);
+  await publishStart(conversationId);
   const { onStart, onMessage, onCompleted, onDone, onError } = callbacks;
 
   // 创建用户消息记录
@@ -153,13 +174,28 @@ export async function streamChat(
         case ChatEventType.CONVERSATION_MESSAGE_DELTA:
           messageInfo.chatId = part.data.chat_id;
           // 若已被取消，则终止流并不保存
-          if (canceledChats.has(makeKey(messageInfo.conversationId, messageInfo.chatId))) {
-            canceledChats.delete(makeKey(messageInfo.conversationId, messageInfo.chatId));
+          if (
+            canceledChats.has(
+              makeKey(messageInfo.conversationId, messageInfo.chatId)
+            )
+          ) {
+            canceledChats.delete(
+              makeKey(messageInfo.conversationId, messageInfo.chatId)
+            );
             await saveCanceledMessage(messageInfo);
             onError?.({ msg: "对话已取消" });
             return;
           }
           messageInfo.fullContent += part.data.content;
+          const reasoningContent = (part.data as any)?.reasoning_content;
+          if (reasoningContent) {
+            publishReasoning(messageInfo.conversationId, reasoningContent);
+          }
+          appendDelta(
+            messageInfo.conversationId,
+            messageInfo.chatId,
+            part.data.content
+          );
           onMessage?.(part.data);
           break;
         case ChatEventType.CONVERSATION_MESSAGE_COMPLETED:
@@ -167,13 +203,23 @@ export async function streamChat(
             onCompleted?.(part.data);
             if (part.data.type === "follow_up") {
               messageInfo.followUps.push(part.data.content);
+              publishFollowUp(messageInfo.conversationId, part.data.content);
+            }
+            if (part.data.type === "answer") {
+              publishCompleted(messageInfo.conversationId, part.data.content);
             }
           }
           break;
         case ChatEventType.DONE:
           // DONE 前再次判断是否已取消
-          if (canceledChats.has(makeKey(messageInfo.conversationId, messageInfo.chatId))) {
-            canceledChats.delete(makeKey(messageInfo.conversationId, messageInfo.chatId));
+          if (
+            canceledChats.has(
+              makeKey(messageInfo.conversationId, messageInfo.chatId)
+            )
+          ) {
+            canceledChats.delete(
+              makeKey(messageInfo.conversationId, messageInfo.chatId)
+            );
             await saveCanceledMessage(messageInfo);
             onError?.({ msg: "对话已取消" });
             return;
@@ -182,6 +228,8 @@ export async function streamChat(
           saveAIMessage(messageInfo).catch((error) => {
             console.error("保存AI消息失败:", error);
           });
+          await setConversationInProgress(messageInfo.conversationId, false);
+          publishDone(messageInfo.conversationId);
           break;
         case ChatEventType.ERROR:
           // 记录错误消息到数据库
@@ -192,6 +240,11 @@ export async function streamChat(
             console.error("保存错误消息失败:", error);
           });
           onError?.(part.data);
+          await setConversationInProgress(messageInfo.conversationId, false);
+          publishError(
+            messageInfo.conversationId,
+            part?.data?.msg || "对话服务暂时不可用"
+          );
           return;
       }
     }
@@ -217,6 +270,8 @@ export async function cancelChat(chatId: string, conversationId: string) {
   const chatResponse = await client.chat.cancel(conversationId, chatId);
   if ((chatResponse as any)?.status === "canceled") {
     await markChatCanceled(conversationId, chatId);
+    await setConversationInProgress(conversationId, false);
+    publishError(conversationId, "对话已取消");
   }
   return chatResponse;
 }

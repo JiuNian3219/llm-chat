@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const conversationSchema = new mongoose.Schema(
   {
@@ -6,22 +6,26 @@ const conversationSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      index: true
+      index: true,
     },
     title: {
       type: String,
-      default: '新对话'
+      default: "新对话",
     },
     titleReady: {
       type: Boolean,
-      default: false
+      default: false,
+    },
+    inProgress: {
+      type: Boolean,
+      default: true,
     },
   },
   {
-    timestamps: true
+    timestamps: true,
   }
 );
 
-const Conversation = mongoose.model('Conversation', conversationSchema);
+const Conversation = mongoose.model("Conversation", conversationSchema);
 
 export default Conversation;

@@ -31,6 +31,7 @@ const AIMessage = ({ messageId, isLast, className, style }: AIMessageProps) => {
   const {
     content,
     isLoading,
+    isTextCompleted,
     followUps = [],
     isCancel,
     isError,
@@ -47,7 +48,8 @@ const AIMessage = ({ messageId, isLast, className, style }: AIMessageProps) => {
   const showFollowUps = !isLoading && !isCancel && !!isLast;
   // 是否展示取消提示，当是取消，是最后一条消息时展示
   const showCancelTip = !!isCancel;
-  const isFollowUpsLoading = followUps.length === 0 && !isChatCompleted;
+  const isFollowUpsLoading =
+    !!isTextCompleted && followUps.length === 0 && !isChatCompleted;
   const handleCopyMessage = async () => {
     // 如果没有消息则不执行复制操作
     if (!content) return;
@@ -78,7 +80,7 @@ const AIMessage = ({ messageId, isLast, className, style }: AIMessageProps) => {
             <>
               <MarkdownMessage
                 message={content}
-                isCompleted={isChatCompleted}
+                isCompleted={!!isTextCompleted}
               />
               {showActions && (
                 <Flex className={styles["button-container"]}>
