@@ -1,18 +1,21 @@
 import type { Request, Response } from "express";
+import { channelForConversation, redisSub } from "../config/redis.js";
 import { asyncHandler } from "../middleware/errorHandler.js";
 import {
   cancelChat,
+  createNewConversation,
   nonStreamChat,
   streamChat,
 } from "../services/coze/chat.js";
 import { cancelFileUpload, uploadFile } from "../services/coze/upload.js";
 import {
+  deleteConversation,
   getAllConversations,
   getConversation,
   getConversationsWithPagination,
   updateConversationTitle,
-  deleteConversation,
 } from "../services/database/conversation.js";
+import { getSnapshot } from "../services/stream/hub.js";
 import {
   CustomError,
   FileUploadError,
@@ -21,8 +24,6 @@ import {
 } from "../utils/error.js";
 import { error, success } from "../utils/response.js";
 import { sendSSEError, sendSSEMessage, setupSSE } from "../utils/sse.js";
-import { getSnapshot } from "../services/stream/hub.js";
-import { redisSub, channelForConversation } from "../config/redis.js";
 
 /**
  * 处理非流式聊天请求
@@ -47,67 +48,68 @@ export const nonStreamChatHandler = asyncHandler(
  */
 export const streamChatHandler = asyncHandler(
   async (req: Request, res: Response) => {
-    const { content, contentType, conversationId } = req.body;
+    const { content, contentType } = req.body;
+    let { conversationId } = req.body;
 
     if (!content) {
       throw new ValidationError("内容不能为空");
     }
 
-    // 设置响应头
+    // 新会话：先在 Coze 和 MongoDB 中创建会话记录，再订阅正确的 Redis 频道
+    // 此步骤在 setupSSE 之前执行，若失败则正常返回 JSON 错误响应
+    if (!conversationId) {
+      conversationId = await createNewConversation(content);
+    }
+
     setupSSE(res);
 
-    try {
-      await streamChat(
-        content,
-        contentType || "text",
-        {
-          onStart: (data: any) => {
-            sendSSEMessage(res, {
-              type: "start",
-              conversationId: data.conversation_id,
-            });
-          },
-          onMessage: (data: any) => {
-            let reasoningContent = data.reasoning_content;
-            if (reasoningContent) {
-              sendSSEMessage(res, {
-                type: "reasoning",
-                content: reasoningContent,
-              });
-            } else {
-              sendSSEMessage(res, {
-                type: "message",
-                content: data.content,
-                chatId: data.chat_id,
-              });
-            }
-          },
-          onCompleted: (data: any) => {
-            const { role, type } = data;
-            if (role === "assistant" && type === "follow_up") {
-              sendSSEMessage(res, { type: "follow_up", content: data.content });
-            } else {
-              sendSSEMessage(res, { type: "completed", content: data.content });
-            }
-          },
-          onDone: (data: any) => {
-            sendSSEMessage(res, { type: "done", content: data.content });
-            res.end();
-          },
-          onError: (error: any) => {
-            sendSSEError(res, error.msg || "对话服务暂时不可用");
-          },
-        },
-        conversationId
-      );
-    } catch (error: any) {
-      // 如果响应未开始，则返回JSON格式的错误，开始后使用SSE发送错误
-      if (!res.headersSent) {
-        throw error;
-      } else {
-        sendSSEError(res, error.message || "对话服务暂时不可用");
+    // 先订阅 Redis 频道，再启动生成，避免错过 start 事件
+    const channel = channelForConversation(conversationId);
+    const sub = redisSub.duplicate();
+    await sub.subscribe(channel);
+
+    const onMessage = (message: string) => {
+      try {
+        const data = JSON.parse(message);
+        if (data.type === "error") {
+          sendSSEError(res, data.error || "对话服务暂时不可用");
+          sub.unsubscribe(channel);
+          return;
+        }
+        if (data.type === "done") {
+          sendSSEMessage(res, { type: "done" });
+          sub.unsubscribe(channel);
+          res.end();
+          return;
+        }
+        sendSSEMessage(res, data);
+      } catch (e) {
+        console.error("消息解析失败:", e);
       }
-    }
+    };
+
+    sub.on("message", (chan: string, msg: string) => {
+      if (chan === channel) onMessage(msg);
+    });
+
+    req.on("close", () => {
+      try {
+        sub.unsubscribe(channel);
+        sub.removeAllListeners("message");
+        sub.disconnect();
+      } catch {}
+    });
+
+    // 在后台启动流式生成；streamChat 内部 catch 会通过 publishError → Redis → SSE 通知前端
+    // 若 Redis 通道异常导致通知未能到达，此处兜底直接写 SSE
+    streamChat(content, contentType || "text", conversationId).catch(
+      (err: any) => {
+        console.error("流式聊天失败:", err);
+        if (!res.writableEnded) {
+          sendSSEError(res, err.message || "对话服务暂时不可用");
+        }
+      }
+    );
   }
 );
 
@@ -127,10 +129,13 @@ export const subscribeChatHandler = asyncHandler(
     const snapshot = await getSnapshot(conversationId);
     sendSSEMessage(res, { type: "start", conversationId });
     if (snapshot.content) {
-      sendSSEMessage(res, { type: "message", content: snapshot.content });
+      sendSSEMessage(res, { type: "snapshot", content: snapshot.content });
     }
     if (snapshot.status === "completed") {
-      sendSSEMessage(res, { type: "completed", content: snapshot.content || "" });
+      sendSSEMessage(res, {
+        type: "completed",
+        content: snapshot.content || "",
+      });
     }
     if (snapshot.status === "done") {
       sendSSEMessage(res, { type: "done", content: snapshot.content || "" });
@@ -154,7 +159,10 @@ export const subscribeChatHandler = asyncHandler(
           return;
         }
         if (data.type === "done") {
-          sendSSEMessage(res, { type: "done", content: snapshot.content || "" });
+          sendSSEMessage(res, {
+            type: "done",
+            content: snapshot.content || "",
+          });
           sub.unsubscribe(channel);
           res.end();
           return;

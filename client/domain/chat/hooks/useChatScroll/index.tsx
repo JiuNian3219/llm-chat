@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 interface UseChatScrollOptions {
   boxRef: RefObject<HTMLElement | null>;
-  isChatCompleted?: boolean;
+  isGenerating?: boolean;
   threshold?: number;
 }
 
@@ -11,12 +11,12 @@ interface UseChatScrollOptions {
  * 聊天窗口自动滚动 Hook
  * @param options - 配置项
  * @param options.boxRef - 需要绑定到滚动容器的 ref
- * @param options.isChatCompleted - 是否聊天已完成
+ * @param options.isGenerating - 是否正在生成（用于判断是否需要自动滚动）
  * @param options.threshold - 距离底部多少像素内自动滚动
  */
 export const useChatScroll = ({
   boxRef,
-  isChatCompleted = false,
+  isGenerating = false,
   threshold = 200,
 }: UseChatScrollOptions) => {
   const [isAwayFromBottom, setIsAwayFromBottom] = useState(false);
@@ -50,7 +50,7 @@ export const useChatScroll = ({
       });
       checkIsAwayFromBottom();
     },
-    [boxRef]
+    [boxRef, checkIsAwayFromBottom]
   );
 
   // 鼠标滚轮向上滚动状态
@@ -84,8 +84,8 @@ export const useChatScroll = ({
     if (!scrollElement) return;
 
     const observer = new MutationObserver(() => {
-      // 如果接近底部且聊天未完成且鼠标滚轮未滚动，则滚动到底部
-      if (!checkIsAwayFromBottom() && !isChatCompleted && !isWheelingUp) {
+      // 如果接近底部且正在生成且鼠标滚轮未滚动，则滚动到底部
+      if (!checkIsAwayFromBottom() && isGenerating && !isWheelingUp) {
         scrollToBottom();
       }
       checkIsAwayFromBottom();
@@ -101,7 +101,7 @@ export const useChatScroll = ({
     return () => observer.disconnect();
   }, [
     boxRef,
-    isChatCompleted,
+    isGenerating,
     scrollToBottom,
     checkIsAwayFromBottom,
     isWheelingUp,

@@ -79,35 +79,18 @@ export async function nonStreamChat(
  * 执行流式的聊天请求
  * @param content - 用户输入的内容
  * @param contentType - 内容类型, "text", "object_string"
- * @param callbacks - 回调函数
- * @param callbacks.onStart - 开始回调
- * @param callbacks.onMessage - 消息回调
- * @param callbacks.onCompleted - 完成回调
- * @param callbacks.onDone - 完成回调
- * @param callbacks.onError - 错误回调
  * @param conversationId - 会话ID
  */
 export async function streamChat(
   content: string,
   contentType: ContentType,
-  callbacks: {
-    onStart?: (data: any) => void;
-    onMessage?: (data: any) => void;
-    onCompleted?: (data: any) => void;
-    onDone?: (data: any) => void;
-    onError?: (error: any) => void;
-  },
-  conversationId?: string
+  conversationId: string
 ) {
-  if (!conversationId) {
-    // 如果没有提供会话ID，则创建一个新的会话
-    conversationId = await createNewConversation(content);
-  }
   // 并发拦截：同一会话在进行中或文本已完成但尚未结束时，拒绝新的流式请求
   if (conversationId) {
     const snapshot = await getSnapshot(conversationId);
     if (snapshot.status === "in_progress" || snapshot.status === "completed") {
-      callbacks.onError?.({ msg: "该会话正在生成中，请稍后再试" });
+      await publishError(conversationId, "该会话正在生成中，请稍后再试");
       throw new Error("该会话正在生成中，请稍后再试");
     }
   }
@@ -115,7 +98,6 @@ export async function streamChat(
   await updateConversationTimestamp(conversationId);
   await setConversationInProgress(conversationId, true);
   await publishStart(conversationId);
-  const { onStart, onMessage, onCompleted, onDone, onError } = callbacks;
 
   // 创建用户消息记录
   createMessage({
@@ -169,7 +151,7 @@ export async function streamChat(
       switch (part.event) {
         case ChatEventType.CONVERSATION_CHAT_CREATED:
           messageInfo.conversationId = part.data.conversation_id;
-          onStart?.(part.data);
+          // onStart removed, already published start
           break;
         case ChatEventType.CONVERSATION_MESSAGE_DELTA:
           messageInfo.chatId = part.data.chat_id;
@@ -183,30 +165,30 @@ export async function streamChat(
               makeKey(messageInfo.conversationId, messageInfo.chatId)
             );
             await saveCanceledMessage(messageInfo);
-            onError?.({ msg: "对话已取消" });
+            await publishError(messageInfo.conversationId, "对话已取消");
             return;
           }
           messageInfo.fullContent += part.data.content;
           const reasoningContent = (part.data as any)?.reasoning_content;
           if (reasoningContent) {
-            publishReasoning(messageInfo.conversationId, reasoningContent);
+            await publishReasoning(messageInfo.conversationId, reasoningContent);
           }
-          appendDelta(
+          await appendDelta(
             messageInfo.conversationId,
             messageInfo.chatId,
             part.data.content
           );
-          onMessage?.(part.data);
+          // onMessage removed, appendDelta publishes message
           break;
         case ChatEventType.CONVERSATION_MESSAGE_COMPLETED:
           if (["follow_up", "answer"].includes(part.data.type)) {
-            onCompleted?.(part.data);
+            // onCompleted removed
             if (part.data.type === "follow_up") {
               messageInfo.followUps.push(part.data.content);
-              publishFollowUp(messageInfo.conversationId, part.data.content);
+              await publishFollowUp(messageInfo.conversationId, part.data.content);
             }
             if (part.data.type === "answer") {
-              publishCompleted(messageInfo.conversationId, part.data.content);
+              await publishCompleted(messageInfo.conversationId, part.data.content);
             }
           }
           break;
@@ -221,15 +203,15 @@ export async function streamChat(
               makeKey(messageInfo.conversationId, messageInfo.chatId)
             );
             await saveCanceledMessage(messageInfo);
-            onError?.({ msg: "对话已取消" });
+            await publishError(messageInfo.conversationId, "对话已取消");
             return;
           }
-          onDone?.({ content: messageInfo.fullContent });
+          // onDone removed
           saveAIMessage(messageInfo).catch((error) => {
             console.error("保存AI消息失败:", error);
           });
           await setConversationInProgress(messageInfo.conversationId, false);
-          publishDone(messageInfo.conversationId);
+          await publishDone(messageInfo.conversationId);
           break;
         case ChatEventType.ERROR:
           // 记录错误消息到数据库
@@ -239,9 +221,9 @@ export async function streamChat(
           ).catch((error) => {
             console.error("保存错误消息失败:", error);
           });
-          onError?.(part.data);
+          // onError removed
           await setConversationInProgress(messageInfo.conversationId, false);
-          publishError(
+          await publishError(
             messageInfo.conversationId,
             part?.data?.msg || "对话服务暂时不可用"
           );
@@ -254,7 +236,8 @@ export async function streamChat(
     await saveErrorMessage(messageInfo, "对话服务暂时不可用").catch((e) => {
       console.error("保存错误消息失败:", e);
     });
-    onError?.({ msg: "对话服务暂时不可用" });
+    // onError removed
+    await publishError(messageInfo.conversationId, "对话服务暂时不可用");
     throw error;
   }
 }
@@ -325,7 +308,7 @@ async function getFilesFromContent(content: string, contentType: ContentType) {
  * @param query - 用于生成会话标题的查询内容
  * @returns
  */
-async function createNewConversation(query: string) {
+export async function createNewConversation(query: string) {
   const conversation = await client.conversations.create({
     bot_id: getBotId(),
   });

@@ -6,10 +6,11 @@ import { useChatScroll } from "@/domain/chat/hooks/useChatScroll";
 import { loadConversationMessages } from "@/domain/chat/services/chatService";
 import { useChatStore } from "@/domain/chat/stores/chatStore";
 import { useConversation } from "@/domain/chat/stores/conversationStore";
+import { ChatStatus } from "@/src/types/store";
 import { ArrowDownOutlined } from "@ant-design/icons";
 import { Flex, Spin, theme } from "antd";
 import { useEffect, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import styles from "./index.module.css";
 
 const Chat = () => {
@@ -17,15 +18,18 @@ const Chat = () => {
     token: { colorBgContainer },
   } = theme.useToken();
 
-  const isChatCompleted = useChatStore((s) => s.isChatCompleted);
+  const status = useChatStore((s) => s.status);
   const isLoadingMessages = useChatStore((s) => s.isLoadingMessages);
+  const setCurrentConversationId = useConversation((s) => s.setCurrentConversationId);
+  const fetchCurrentTitle = useConversation((s) => s.fetchCurrentTitle);
   const { conversationId } = useParams();
+  const location = useLocation();
 
   const boxRef = useRef<HTMLElement | null>(null);
 
   const { isAwayFromBottom, scrollToBottom } = useChatScroll({
     boxRef,
-    isChatCompleted,
+    isGenerating: status === ChatStatus.Generating,
   });
 
   const handleScrollToBottom = () => {
@@ -44,22 +48,18 @@ const Chat = () => {
   }, [isLoadingMessages]);
 
   useEffect(() => {
-    if (!conversationId) {
-      return;
-    }
-    // 更新会话状态与标题，并加载会话消息
-    const setCurrentConversationId =
-      useConversation.getState().setCurrentConversationId;
-    const fetchCurrentTitle = useConversation.getState().fetchCurrentTitle;
+    if (!conversationId) return;
     setCurrentConversationId(conversationId);
     fetchCurrentTitle(conversationId);
-    loadConversationMessages(conversationId);
+    // Home 页首次发送消息后跳转时携带 skipLoad，避免覆盖正在生成的消息
+    if (!location.state?.skipLoad) {
+      loadConversationMessages(conversationId);
+    }
   }, [conversationId]);
 
   return (
     <Flex
       vertical
-      justify="center"
       align="center"
       className={styles["chat-container"]}
       ref={boxRef}

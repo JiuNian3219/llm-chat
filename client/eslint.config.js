@@ -74,6 +74,7 @@ export default [
           caughtErrorsIgnorePattern: "^_",
         },
       ],
+      "no-redeclare": "off",
       "@typescript-eslint/no-explicit-any": "off",
       "react-refresh/only-export-components": [
         "warn",

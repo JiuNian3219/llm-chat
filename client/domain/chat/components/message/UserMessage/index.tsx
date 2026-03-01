@@ -2,7 +2,6 @@ import IconButton from "@/base/components/IconButton";
 import useCopyToClipboard from "@/domain/chat/hooks/useCopyToClipboard";
 import { sendStreamMessage } from "@/domain/chat/services/chatService";
 import { useChatStore } from "@/domain/chat/stores/chatStore";
-import { useMessages } from "@/domain/chat/stores/messageStore";
 import { EditOutlined } from "@ant-design/icons";
 import { Button, Flex } from "antd";
 import TextArea from "antd/es/input/TextArea";
@@ -33,12 +32,12 @@ const UserMessage = ({
   className,
   style,
 }: UserMessageProps) => {
-  const { content, files = [] } = useMessages(
+  const { content, files = [] } = useChatStore(
     (s) => s.messagesById[messageId] || {}
   );
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState(content || "");
-  const isChatCompleted = useChatStore((s) => s.isChatCompleted);
+  const status = useChatStore((s) => s.status);
   const { copyText, getCopyIcon } = useCopyToClipboard();
 
   /**
@@ -120,7 +119,7 @@ const UserMessage = ({
               <Button
                 type="primary"
                 onClick={handleSendMessage}
-                disabled={!inputValue.trim() || !isChatCompleted}
+                disabled={!inputValue.trim() || status === "generating"}
               >
                 发送
               </Button>

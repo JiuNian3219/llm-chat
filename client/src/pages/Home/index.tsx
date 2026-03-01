@@ -3,17 +3,17 @@ import AIFooterTip from "@/domain/chat/components/AIFooterTip";
 import AIGreeting from "@/domain/chat/components/AIGreeting";
 import AIInputPanel from "@/domain/chat/components/input/AIInputPanel";
 import ChatMessages from "@/domain/chat/components/structure/ChatMessages";
-import { handleFirstChange } from "@/domain/chat/services/chatService";
 import { useConversation } from "@/domain/chat/stores/conversationStore";
-import { useMessages } from "@/domain/chat/stores/messageStore";
+import { useChatStore } from "@/domain/chat/stores/chatStore";
 import { Flex } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "./index.module.css";
+import { SSEStartData } from "@/src/types/services";
 
 const Home = () => {
   const isMobile = useIsMobile();
-  const messageCount = useMessages((s) => s.messageIds.length);
+  const messageCount = useChatStore((s) => s.messageIds.length);
   const [inBottom, setInBottom] = useState(false);
   const [shouldHide, setShouldHide] = useState(false);
   const navigate = useNavigate();
@@ -39,15 +39,15 @@ const Home = () => {
   }, []);
 
   /**
-   * 处理开始事件
-   * @param {object} data - 回调数据，包含 conversationId
+   * 首次发送消息后跳转到聊天页
+   * 携带 skipLoad 避免 Chat 页重新拉取消息覆盖正在生成的内容
+   * @param data - 消息数据
    */
-  const handleStart = (data: any) => {
-    handleFirstChange(true);
+  const handleStart = (data: SSEStartData) => {
     setTimeout(() => {
-      const { conversationId } = data;
-      navigate("/chat/" + conversationId, {
+      navigate("/chat/" + data.conversationId, {
         replace: true,
+        state: { skipLoad: true },
       });
     }, 1000);
   };

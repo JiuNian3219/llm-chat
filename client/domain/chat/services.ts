@@ -3,6 +3,7 @@ import api from "@/domain/chat/const/api";
 import type {
   CancelResponse,
   ContentType,
+  SSEEventData,
   StreamChatCallbacks,
   UploadResponse,
 } from "@/src/types/services";
@@ -11,108 +12,38 @@ import { fetchEventSource } from "@microsoft/fetch-event-source";
 const { coze } = api;
 
 /**
- * 执行流式的聊天请求
- * @param content - 用户输入的内容
- * @param contentType - 内容类型, "text", "object_string"
+ * 建立 SSE 连接的底层工具函数。
+ * 解析 `event.data`，按 type 分发到对应回调，并在 done/error 时自动关闭连接。
+ *
+ * @param url - 请求URL
+ * @param method - 请求方法
+ * @param body - 请求体
  * @param callbacks - 回调函数
- * @param callbacks.onStart - 开始回调
- * @param callbacks.onMessage - 消息回调
- * @param callbacks.onCompleted - 完成回调
- * @param callbacks.onFollowUp - 后续建议回调
- * @param callbacks.onDone - 完成回调
- * @param callbacks.onError - 错误回调
- * @param conversationId - 会话ID
+ * @param fallbackErrorMsg - 默认错误消息
+ * @returns 取消函数；抛出异常时通过 onError 回调传递并返回 undefined
  */
-function streamChatByCoze(
-  content: string,
-  contentType: ContentType,
+function openSSEConnection(
+  url: string,
+  method: string,
+  body: Record<string, unknown>,
   callbacks: StreamChatCallbacks,
-  conversationId?: string
-) {
+  fallbackErrorMsg: string,
+): (() => void) | undefined {
   try {
-    const { onStart, onMessage, onCompleted, onFollowUp, onDone, onError } =
-      callbacks;
-    if (!content) {
-      throw new Error("content不能为空");
-    }
-    const { url, method } = coze.streamingChat;
+    const {
+      onStart,
+      onSnapshot,
+      onMessage,
+      onCompleted,
+      onFollowUp,
+      onDone,
+      onError,
+    } = callbacks;
     const controller = new AbortController();
 
     fetchEventSource(`${(import.meta as any).env.VITE_API_BASE_URL}${url}`, {
       method,
-      body: JSON.stringify({
-        content,
-        contentType,
-        conversationId,
-      }),
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "text/event-stream",
-      },
-      openWhenHidden: true, // 确保在后台也能接收消息
-      signal: controller.signal,
-      onmessage: (event) => {
-        const data = JSON.parse(event.data);
-        switch (data.type) {
-          case "start":
-            onStart && onStart(data);
-            break;
-          case "message":
-            onMessage && onMessage(data);
-            break;
-          case "completed":
-            onCompleted && onCompleted(data);
-            break;
-          case "follow_up":
-            onFollowUp && onFollowUp(data);
-            break;
-          case "done":
-            onDone && onDone(data);
-            // 关闭连接
-            controller.abort();
-            break;
-          case "error":
-            onError && onError(data);
-            break;
-        }
-      },
-      onerror: (error) => {
-        onError && onError(error);
-        controller.abort();
-      },
-    });
-    // 返回一个取消函数，用于取消请求接收
-    return () => {
-      controller.abort();
-    };
-  } catch (error: any) {
-    const message = error?.message || "AI对话发生错误，请稍后再试";
-    callbacks?.onError?.({ message });
-    return;
-  }
-}
-
-/**
- * 订阅会话的流式输出（刷新/切换后续播）
- * @param conversationId - 会话ID
- * @param callbacks - 回调函数
- */
-function subscribeChatByConversation(
-  conversationId: string,
-  callbacks: StreamChatCallbacks
-) {
-  try {
-    const { onStart, onMessage, onCompleted, onFollowUp, onDone, onError } =
-      callbacks;
-    if (!conversationId) {
-      throw new Error("conversationId不能为空");
-    }
-    const { url, method } = coze.subscribeChat;
-    const controller = new AbortController();
-
-    fetchEventSource(`${(import.meta as any).env.VITE_API_BASE_URL}${url}`, {
-      method,
-      body: JSON.stringify({ conversationId }),
+      body: JSON.stringify(body),
       headers: {
         "Content-Type": "application/json",
         Accept: "text/event-stream",
@@ -120,43 +51,101 @@ function subscribeChatByConversation(
       openWhenHidden: true,
       signal: controller.signal,
       onmessage: (event) => {
-        const data = JSON.parse(event.data);
+        const data: SSEEventData = JSON.parse(event.data);
         switch (data.type) {
           case "start":
-            onStart && onStart(data);
+            onStart?.(data);
+            break;
+          case "snapshot":
+            onSnapshot?.(data);
             break;
           case "message":
-            onMessage && onMessage(data);
+            onMessage?.(data);
             break;
           case "completed":
-            onCompleted && onCompleted(data);
+            onCompleted?.(data);
             break;
           case "follow_up":
-            onFollowUp && onFollowUp(data);
+            onFollowUp?.(data);
             break;
           case "done":
-            onDone && onDone(data);
+            onDone?.(data);
             controller.abort();
             break;
           case "error":
-            onError && onError(data);
+            onError?.(data);
             controller.abort();
             break;
         }
       },
+      // 必须 throw，否则 fetchEventSource 会在 onerror 返回后自动重试
       onerror: (error) => {
-        onError && onError(error);
-        controller.abort();
+        onError?.(error);
+        throw error;
       },
-    });
-    return () => {
-      controller.abort();
-    };
+    }).catch(() => {});
+
+    return () => controller.abort();
   } catch (error: any) {
-    const message = error?.message || "订阅会话输出失败，请稍后再试";
-    callbacks?.onError?.({ message });
-    return;
+    callbacks.onError?.({
+      type: "error",
+      error: error?.message || fallbackErrorMsg,
+    });
+    return undefined;
   }
+}
+
+/**
+ * 执行流式聊天请求
+ * @param content - 用户输入的内容
+ * @param contentType - 内容类型, "text", "object_string"
+ * @param callbacks - 回调函数
+ * @param conversationId - 会话ID
+ * @returns 取消函数；抛出异常时通过 onError 回调传递并返回 undefined
+ */
+function streamChatByCoze(
+  content: string,
+  contentType: ContentType,
+  callbacks: StreamChatCallbacks,
+  conversationId?: string,
+): (() => void) | undefined {
+  if (!content) {
+    callbacks.onError?.({ type: "error", error: "content不能为空" });
+    return undefined;
+  }
+  const { url, method } = coze.streamingChat;
+  return openSSEConnection(
+    url,
+    method,
+    { content, contentType, conversationId },
+    callbacks,
+    "AI对话发生错误，请稍后再试",
+  );
+}
+
+/**
+ * 订阅会话的流式输出（断线续播）
+ *
+ * @param conversationId - 会话ID
+ * @param callbacks - 回调函数
+ * @returns 取消函数；抛出异常时通过 onError 回调传递并返回 undefined
+ */
+function subscribeChatByConversation(
+  conversationId: string,
+  callbacks: StreamChatCallbacks,
+): (() => void) | undefined {
+  if (!conversationId) {
+    callbacks.onError?.({ type: "error", error: "conversationId不能为空" });
+    return undefined;
+  }
+  const { url, method } = coze.subscribeChat;
+  return openSSEConnection(
+    url,
+    method,
+    { conversationId },
+    callbacks,
+    "订阅会话输出失败，请稍后再试",
+  );
 }
 
 /**
@@ -171,7 +160,7 @@ function nonStreamChatByCoze(
   content: string,
   contentType: ContentType,
   conversationId?: string,
-  botId?: string
+  botId?: string,
 ) {
   if (!content) {
     return Promise.reject(new Error("content不能为空"));

@@ -1,5 +1,5 @@
-import type { ChatFile } from "@/src/types/chat";
-import type { ChatMessage, ServerMessage } from "@/src/types/message";
+import { UploadStatus, type ChatFile } from "@/src/types/chat";
+import { MessageStatus, type ChatMessage, type ServerMessage } from "@/src/types/message";
 
 /**
  * 复制信息
@@ -118,16 +118,19 @@ export function formatServerMessages(messages: ServerMessage[]): ChatMessage[] {
   }
   return messages.map((message: ServerMessage) => {
     const { role, contentType, content, files, followUps, status } = message;
+
+    const msgStatus: MessageStatus =
+      status === "canceled" ? MessageStatus.Canceled
+      : status === "error" ? MessageStatus.Error
+      : MessageStatus.Completed;
+
     const newMessage: ChatMessage = {
       id: message._id,
       chatId: message.chatId,
       role,
       content,
-      followUps,
-      isLoading: false,
-      isTextCompleted: true,
-      isCancel: status === "canceled",
-      isError: status === "error",
+      followUps: followUps || [],
+      status: msgStatus,
       files: [] as ChatFile[],
     };
     if (contentType === "object_string" && content) {
@@ -142,7 +145,7 @@ export function formatServerMessages(messages: ServerMessage[]): ChatMessage[] {
         size: file.size,
         url: `${(import.meta as any).env.VITE_API_BASE_URL || ""}${file.url}`,
         type: file.isImage ? "image" : "file",
-        status: "done",
+        status: UploadStatus.Done,
       }));
     }
     return newMessage;

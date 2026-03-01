@@ -1,77 +1,224 @@
 import server from "@/domain/chat/services";
 import { useChatStore } from "@/domain/chat/stores/chatStore";
 import { useConversation } from "@/domain/chat/stores/conversationStore";
-import { useMessages } from "@/domain/chat/stores/messageStore";
 import {
   formatServerMessages,
   generateMultimodalMessage,
   isImageType,
 } from "@/domain/chat/utils";
-import type { ChatFile } from "@/src/types/chat";
-import type { ChatMessage } from "@/src/types/message";
+import { UploadStatus, type ChatFile } from "@/src/types/chat";
+import { MessageStatus, type ChatMessage } from "@/src/types/message";
+import type { SSEErrorData, StreamChatCallbacks } from "@/src/types/services";
 import type { ContentType } from "@/src/types/services";
+import { ChatStatus } from "@/src/types/store";
 import { message as antdMessage } from "antd";
+import { PlayEngine, type PlayEngineHandlers } from "./PlayEngine";
+
+// ─── Store 快捷引用 ───────────────────────────────────────────────────────────
+const chatStore = () => useChatStore.getState();
+const convStore = () => useConversation.getState();
+
+// ─── PlayEngine 工厂 ──────────────────────────────────────────────────────────
 
 /**
- * 轮询获取会话标题，直到获取到非默认标题或达到最大尝试次数
- * @param conversationId - 会话ID
- * @param params - 可选参数
- * @param params.intervalMs - 轮询间隔（毫秒）
- * @param params.maxAttempts - 最大尝试次数
- * @returns 取消轮询函数
+ * 为指定消息 ID 创建 PlayEngineHandlers，所有 Store 写入集中在此处。
+ * PlayEngine 自身不再持有任何 Store 引用。
+ */
+function createHandlers(messageId: string): PlayEngineHandlers {
+  return {
+    onContentDelta: (delta) => chatStore().appendContent(messageId, delta),
+    onSnapshot: (content) => chatStore().setContent(messageId, content),
+    onMessageStatus: (status) =>
+      chatStore().setMessageStatus(messageId, status),
+    getMessageStatus: () =>
+      chatStore().messagesById[messageId]?.status ?? MessageStatus.Pending,
+    onChatId: (chatId) => chatStore().setChatId(messageId, chatId),
+    onFollowUp: (item) => chatStore().addFollowUp(messageId, item),
+    onChatStatus: (status) => chatStore().setStatus(status),
+    onError: (msg) => chatStore().setContent(messageId, msg),
+  };
+}
+
+// ─── SSE 会话清理 ─────────────────────────────────────────────────────────────
+
+/**
+ * 断开当前 SSE 连接并清除 Store 中的所有 SSE 会话状态。
+ * 只断连接，不通知后端——后端继续生成并落库，前端重进时会重新加载。
+ */
+export function clearSSE() {
+  const { cancelSSE } = chatStore();
+  cancelSSE?.();
+  chatStore().setCancelSSE(null);
+  chatStore().setCurrentChatId(null);
+  chatStore().setActiveSSEConversationId(null);
+}
+
+// ─── 流结束后的跨域协调 ───────────────────────────────────────────────────────
+
+/**
+ * SSE 正常结束后的后置操作：按需更新标题栏。
+ *
+ * @param finishedConversationId - 刚刚完成生成的会话 ID（SSE 会话上下文，非导航状态）
+ *
+ * 不再全量刷新会话列表（避免骨架屏闪烁）：
+ * - 新建会话的列表项已在 onStartExtra 中通过 addNewConversation 插入
+ * - 列表项标题由 pollConversationTitle → updateConversationTitle 精准更新
+ * - 只需在用户仍查看该会话时刷新顶部标题栏
+ */
+function afterStreamComplete(finishedConversationId: string | null) {
+  const { currentConversationId, fetchCurrentTitle } = convStore();
+  if (
+    finishedConversationId &&
+    finishedConversationId === currentConversationId
+  ) {
+    fetchCurrentTitle(finishedConversationId);
+  }
+}
+
+// ─── 标题轮询 ─────────────────────────────────────────────────────────────────
+
+/**
+ * 轮询获取会话标题，直到标题就绪或超过最大尝试次数。
+ * @returns 停止轮询的函数
  */
 function pollConversationTitle(
   conversationId: string,
   {
     intervalMs = 800,
     maxAttempts = 25,
-  }: { intervalMs?: number; maxAttempts?: number } = {}
-) {
+  }: { intervalMs?: number; maxAttempts?: number } = {},
+): () => void {
   let attempts = 0;
   let stopped = false;
+
   const tick = async () => {
     if (stopped) return;
-    const currentId = useConversation.getState().currentConversationId;
-    if (currentId && currentId !== conversationId) return;
+    // 注意：不在此处检查 currentConversationId。
+    // 此函数更新的是会话列表项的标题（updateConversationTitle），
+    // 与用户当前查看哪个会话无关，切换会话后仍应继续轮询直到标题就绪。
     attempts += 1;
     try {
       const { data } = await server.getConversationTitle(conversationId);
       if (data?.titleReady) {
         const title = (data?.title || "").trim();
-        useConversation
-          .getState()
-          .updateConversationTitle(conversationId, title || "新对话");
+        convStore().updateConversationTitle(conversationId, title || "新对话");
         return;
       }
-    } catch (_error) {
-      void 0;
+    } catch {
+      // 标题未就绪时静默忽略，继续轮询
     }
     if (attempts < maxAttempts) {
       setTimeout(tick, intervalMs);
     }
   };
+
   setTimeout(tick, intervalMs);
   return () => {
     stopped = true;
   };
 }
 
+// ─── SSE 回调构建 ─────────────────────────────────────────────────────────────
+
 /**
- * 加载某会话的消息列表
- * @param conversationId - 会话ID
+ * 构建标准 SSE 回调，将服务器事件路由到 PlayEngine。
+ * sendStreamMessage / loadConversationMessages 均通过此函数统一接入。
+ */
+function buildSSECallbacks(
+  engine: PlayEngine,
+  messageId: string,
+  options: {
+    /**
+     * SSE 会话所属的会话 ID。
+     * 已知时直接传入；新建会话时为 null，将在 onStartExtra 中通过后端返回的 ID 补全。
+     * 用于 afterStreamComplete / cancel 等需要明确会话上下文的操作。
+     */
+    sseConversationId?: string | null;
+    /** 连接建立后的额外操作（如新建会话、开始标题轮询） */
+    onStartExtra?: (conversationId: string) => void;
+    /** 外部透传回调（来自组件层） */
+    external?: Partial<StreamChatCallbacks>;
+  } = {},
+): StreamChatCallbacks {
+  const { onStartExtra, external = {} } = options;
+
+  // 在 SSE 生命周期内稳定持有"本次会话 ID"，不依赖外部全局状态
+  let sseConversationId = options.sseConversationId ?? null;
+
+  return {
+    onStart: (data) => {
+      // 新建会话时，后端返回的 conversationId 是权威来源
+      if (!sseConversationId) {
+        sseConversationId = data.conversationId;
+      }
+      chatStore().setActiveSSEConversationId(sseConversationId);
+      engine.pushEvent(data);
+      onStartExtra?.(data.conversationId);
+      external.onStart?.(data);
+    },
+    onSnapshot: (data) => {
+      // 断线重连时后端下发全量快照，直接覆盖当前内容以恢复进度
+      engine.pushEvent(data);
+    },
+    onMessage: (data) => {
+      // 仅在 chatId 变化时更新，避免无效写入
+      const { currentChatId } = chatStore();
+      if (data.chatId && data.chatId !== currentChatId) {
+        chatStore().setCurrentChatId(data.chatId);
+        chatStore().setChatId(messageId, data.chatId);
+      }
+      engine.pushEvent(data);
+      external.onMessage?.(data);
+    },
+    onCompleted: (data) => {
+      engine.pushEvent(data);
+      external.onCompleted?.(data);
+    },
+    onFollowUp: (data) => {
+      engine.pushEvent(data);
+      external.onFollowUp?.(data);
+    },
+    onDone: (data) => {
+      engine.pushEvent(data);
+      clearSSE();
+      afterStreamComplete(sseConversationId);
+      external.onDone?.(data);
+    },
+    onError: (error: SSEErrorData) => {
+      const msg = error.error;
+      const isCanceled = typeof msg === "string" && /对话已取消/.test(msg);
+
+      clearSSE();
+
+      if (isCanceled) {
+        chatStore().setMessageStatus(messageId, MessageStatus.Canceled);
+        chatStore().setStatus(ChatStatus.Idle);
+        external.onError?.(error);
+        return;
+      }
+
+      engine.pushEvent({ type: "error" as const, error: msg });
+      antdMessage.error(msg || "AI对话发生错误，请稍后再试");
+      external.onError?.(error);
+    },
+  };
+}
+
+/**
+ * 加载某会话的历史消息；若后端标记 inProgress 则订阅 SSE 续播
+ * @param conversationId - 会话 ID
  */
 export async function loadConversationMessages(conversationId: string | null) {
-  const chatStore = useChatStore.getState();
-  if (chatStore.isFirst) return;
-  // 重置消息与流程标志（不清空文件）
-  useMessages.getState().reset();
-  useChatStore.getState().setIsLoadingMessages(true);
+  // 切换会话时主动断开旧 SSE 连接（不通知后端，后端继续生成并落库）
+  clearSSE();
+  chatStore().resetMessages();
+  chatStore().setIsLoadingMessages(true);
   try {
     if (!conversationId) return;
     const response = await server.getConversationDetail(conversationId);
     const { conversation } = response.data || {};
     const serverMessages = conversation?.messages || [];
-    useMessages.getState().setFromServer(formatServerMessages(serverMessages));
+    chatStore().setFromServer(formatServerMessages(serverMessages));
 
     if (conversation?.inProgress) {
       const aiMessage: ChatMessage = {
@@ -79,71 +226,26 @@ export async function loadConversationMessages(conversationId: string | null) {
         role: "assistant",
         content: "",
         followUps: [],
-        isLoading: true,
-        isTextCompleted: false,
-        isCancel: false,
+        status: MessageStatus.Pending,
         chatId: null,
         conversationId,
       };
-      useMessages.getState().append(aiMessage);
-      useChatStore.getState().setIsChatCompleted(false);
+      chatStore().appendMessage(aiMessage);
+      chatStore().setStatus(ChatStatus.Generating);
 
-      const cancelFn = server.subscribeChatByConversation(conversationId, {
-        onStart: (_data: any) => {
-          void 0;
-        },
-        onMessage: (data: any) => {
-          const chatState = useChatStore.getState();
-          if (data.chatId && data.chatId !== chatState.currentChatId) {
-            useChatStore.getState().setCurrentChatId(data.chatId);
-            useMessages.getState().setChatId(aiMessage.id, data.chatId);
-          }
-          const delta = data?.content || "";
-          if (delta) {
-            useMessages.getState().appendContent(aiMessage.id, delta);
-          }
-        },
-        onCompleted: (_data: any) => {
-          useMessages.getState().patch(aiMessage.id, {
-            isLoading: false,
-            isTextCompleted: true,
-          });
-        },
-        onFollowUp: (data: any) => {
-          if (data?.content) {
-            useMessages.getState().addFollowUp(aiMessage.id, data.content);
-          }
-        },
-        onDone: (_data: any) => {
-          setTimeout(() => {
-            useChatStore.getState().setIsChatCompleted(true);
-            useChatStore.getState().setCurrentChatId(null);
-          }, 1000);
-          useMessages.getState().setLoading(aiMessage.id, false);
-          useChatStore.getState().clearCancelStreamRef();
-          const {
-            currentConversationId,
-            refreshConversations,
-            fetchCurrentTitle,
-          } = useConversation.getState();
-          refreshConversations?.();
-          fetchCurrentTitle?.(currentConversationId!);
-        },
-        onError: (error: any) => {
-          useChatStore.getState().clearCancelStreamRef();
-          useChatStore.getState().setIsChatCompleted(true);
-          useChatStore.getState().setCurrentChatId(null);
-          const msg = error?.error || error?.msg || error?.message || "";
-          const errorText = msg || "AI对话发生错误，请稍后再试";
-          useMessages.getState().markError(aiMessage.id, errorText);
-          antdMessage.error(errorText);
-        },
-      });
-      useChatStore.getState().setCancelStreamRef(cancelFn || null);
+      chatStore().setActiveSSEConversationId(conversationId);
+      const engine = new PlayEngine(aiMessage.id, createHandlers(aiMessage.id));
+      const cancelFn = server.subscribeChatByConversation(
+        conversationId,
+        buildSSECallbacks(engine, aiMessage.id, {
+          sseConversationId: conversationId,
+        }),
+      );
+      chatStore().setCancelSSE(cancelFn ?? null);
     }
   } catch (error: any) {
+    chatStore().resetMessages();
     const msg = error?.message || "";
-    useMessages.getState().reset();
     if (/会话不存在/.test(msg)) {
       throw error;
     } else {
@@ -151,23 +253,17 @@ export async function loadConversationMessages(conversationId: string | null) {
       antdMessage.error("获取会话消息失败，请稍后再试");
     }
   } finally {
-    useChatStore.getState().setIsLoadingMessages(false);
+    chatStore().setIsLoadingMessages(false);
   }
 }
 
 /**
  * 发送流式消息
- * @param params - 发送参数
- * @param params.message - 用户消息内容
- * @param params.attachments - 可选的文件附件
- * @param params.callbacks - 可选的回调函数
- * @param params.callbacks.onStart - 开始回调
- * @param params.callbacks.onMessage - 消息回调
- * @param params.callbacks.onCompleted - 完成回调
- * @param params.callbacks.onFollowUp - 后续回调
- * @param params.callbacks.onDone - 结束回调
- * @param params.callbacks.onError - 错误回调
- * @param params.conversationId - 可选的会话ID
+ * 
+ * @param message - 消息内容
+ * @param attachments - 附件列表
+ * @param callbacks - 回调函数
+ * @param conversationId - 会话ID
  */
 export async function sendStreamMessage({
   message,
@@ -177,33 +273,29 @@ export async function sendStreamMessage({
 }: {
   message: string;
   attachments?: ChatFile[];
-  callbacks?: any;
+  callbacks?: Partial<StreamChatCallbacks>;
   conversationId?: string;
 }) {
   const trimmedMessage = message?.trim();
   if (!trimmedMessage) return;
-  // 并发拦截：同一会话在进行中时前置校验，不追加本地消息
-  {
-    const currentId =
-      conversationId || useConversation.getState().currentConversationId;
-    if (currentId) {
-      await server
-        .getConversationDetail(currentId)
-        .then(({ data }) => {
-          const inProgress = !!data?.conversation?.inProgress;
-          if (inProgress) {
-            antdMessage.warning("该会话正在生成中，请稍后再试");
-            throw new Error("BLOCK_SEND");
-          }
-        })
-        .catch((e) => {
-          if (String(e?.message || "") === "BLOCK_SEND") {
-            throw e;
-          }
-        });
-    }
+
+  // 前置并发拦截：从后端确认当前会话没有正在生成
+  const currentId = conversationId || convStore().currentConversationId;
+  if (currentId) {
+    await server
+      .getConversationDetail(currentId)
+      .then(({ data }) => {
+        if (data?.conversation?.inProgress) {
+          antdMessage.warning("该会话正在生成中，请稍后再试");
+          throw new Error("BLOCK_SEND");
+        }
+      })
+      .catch((e) => {
+        if (String(e?.message || "") === "BLOCK_SEND") throw e;
+      });
   }
-  const files = attachments || useChatStore.getState().files || [];
+
+  const files = attachments || chatStore().files || [];
 
   const userMessage: ChatMessage = {
     id: crypto.randomUUID(),
@@ -211,21 +303,23 @@ export async function sendStreamMessage({
     content: trimmedMessage,
     conversationId,
     chatId: null,
+    status: MessageStatus.Completed,
+    followUps: [],
     files: files as any,
   };
-  useMessages.getState().append(userMessage);
+  chatStore().appendMessage(userMessage);
 
   const aiMessage: ChatMessage = {
     id: crypto.randomUUID(),
     role: "assistant",
     content: "",
     followUps: [],
-    isLoading: true,
-    isTextCompleted: false,
-    isCancel: false,
+    status: MessageStatus.Pending,
     chatId: null,
+    conversationId: conversationId || "",
   };
-  useMessages.getState().append(aiMessage);
+  chatStore().appendMessage(aiMessage);
+  chatStore().setStatus(ChatStatus.Generating);
 
   const contentType: ContentType = files.length > 0 ? "object_string" : "text";
   const payload =
@@ -233,99 +327,51 @@ export async function sendStreamMessage({
       ? generateMultimodalMessage(trimmedMessage, files)
       : trimmedMessage;
 
-  const { onStart, onMessage, onCompleted, onFollowUp, onDone, onError } =
-    callbacks || {};
-
-  useChatStore.getState().setIsChatCompleted(false);
-
-  // 无附件则清空文件队列
   if (!attachments) {
-    useChatStore.getState().setFiles([]);
+    chatStore().setFiles([]);
   }
 
   try {
-    // 记录取消函数
-    const currentConversationId =
-      useConversation.getState().currentConversationId;
+    const activeConversationId =
+      conversationId || convStore().currentConversationId;
+
+    // 已知 conversationId 时提前写入，新建会话场景将在 onStart 回调中补全
+    if (activeConversationId) {
+      chatStore().setActiveSSEConversationId(activeConversationId);
+    }
+
+    const engine = new PlayEngine(aiMessage.id, createHandlers(aiMessage.id));
+
+    // 标题轮询取消句柄，在 SSE 结束/出错时停止
+    let stopTitlePoll: (() => void) | undefined;
+
     const cancelFn = server.streamChatByCoze(
       payload,
       contentType,
-      {
-        onStart: (data) => {
-          useConversation
-            .getState()
-            .addNewConversation(data.conversationId, "新对话");
-          pollConversationTitle(data.conversationId);
-          onStart?.(data);
+      buildSSECallbacks(engine, aiMessage.id, {
+        sseConversationId: activeConversationId,
+        onStartExtra: (newConversationId) => {
+          convStore().addNewConversation(newConversationId, "新对话");
+          stopTitlePoll = pollConversationTitle(newConversationId);
         },
-        onMessage: (data) => {
-          const chatState = useChatStore.getState();
-          if (data.chatId !== chatState.currentChatId) {
-            useChatStore.getState().setCurrentChatId(data.chatId);
-            useMessages.getState().setChatId(aiMessage.id, data.chatId);
-          }
-          useMessages.getState().appendContent(aiMessage.id, data.content);
-          onMessage?.(data);
+        external: {
+          ...callbacks,
+          onError: (error) => {
+            // 出错时停止轮询：制造一个失败的会话不值得继续拉取标题
+            stopTitlePoll?.();
+            callbacks?.onError?.(error);
+          },
         },
-        onCompleted: (data) => {
-          useMessages.getState().patch(aiMessage.id, {
-            isLoading: false,
-            isTextCompleted: true,
-          });
-          onCompleted?.(data);
-        },
-        onFollowUp: (data) => {
-          useMessages.getState().addFollowUp(aiMessage.id, data.content);
-          onFollowUp?.(data);
-        },
-        onDone: (data) => {
-          setTimeout(() => {
-            useChatStore.getState().setIsChatCompleted(true);
-            useChatStore.getState().setCurrentChatId(null);
-          }, 1000);
-          useMessages.getState().setLoading(aiMessage.id, false);
-          useChatStore.getState().clearCancelStreamRef();
-          useChatStore.getState().setIsFirst(false);
-          // 完成后刷新会话列表与标题
-          const {
-            currentConversationId,
-            refreshConversations,
-            fetchCurrentTitle,
-          } = useConversation.getState();
-          refreshConversations?.();
-          fetchCurrentTitle?.(currentConversationId!);
-          onDone?.(data);
-        },
-        onError: (error) => {
-          useChatStore.getState().clearCancelStreamRef();
-          useChatStore.getState().setIsChatCompleted(true);
-          useChatStore.getState().setCurrentChatId(null);
-          useChatStore.getState().setIsFirst(false);
-          const msg = error?.error || error?.msg || error?.message || "";
-          const isCanceled =
-            typeof msg === "string" && /对话已取消/.test(msg);
-          if (isCanceled) {
-            useMessages.getState().setLoading(aiMessage.id, false);
-            useMessages.getState().markCancel(aiMessage.id);
-            onError?.(error);
-            return;
-          }
-          const errorText = msg || "AI对话发生错误，请稍后再试";
-          useMessages.getState().markError(aiMessage.id, errorText);
-          antdMessage.error(errorText);
-          onError?.(error);
-        },
-      },
-      currentConversationId || undefined
+      }),
+      activeConversationId || undefined,
     );
-    useChatStore.getState().setCancelStreamRef(cancelFn || null);
+    chatStore().setCancelSSE(cancelFn ?? null);
   } catch (error: any) {
-    useChatStore.getState().clearCancelStreamRef();
-    useChatStore.getState().setIsChatCompleted(true);
-    useChatStore.getState().setCurrentChatId(null);
-    useChatStore.getState().setIsFirst(false);
+    clearSSE();
+    chatStore().setStatus(ChatStatus.Error);
     const errorText = error?.message || "AI对话发生错误，请稍后再试";
-    useMessages.getState().markError(aiMessage.id, errorText);
+    chatStore().setMessageStatus(aiMessage.id, MessageStatus.Error);
+    chatStore().setContent(aiMessage.id, errorText);
     antdMessage.error(errorText);
   }
 }
@@ -334,42 +380,25 @@ export async function sendStreamMessage({
  * 取消当前流式对话
  */
 export async function cancelCurrentStream() {
-  const chatState = useChatStore.getState();
-  const { cancelStreamRef, currentChatId } = chatState;
-  const currentConversationId =
-    useConversation.getState().currentConversationId;
-  const isChatCompleted = chatState.isChatCompleted;
-  if (
-    !cancelStreamRef ||
-    !currentChatId ||
-    !currentConversationId ||
-    isChatCompleted
-  )
-    return;
+  // 必须在 clearSSE() 之前读取，因为 clearSSE 会清空这两个字段
+  const { currentChatId, activeSSEConversationId } = chatStore();
 
-  const response = await server.cancelChatByCoze(
-    currentConversationId,
-    currentChatId
-  );
-  const { status } = response.data || {};
-  if (status === "canceled") {
-    const ids = useMessages.getState().messageIds;
-    const byId = useMessages.getState().messagesById;
-    const target = ids
-      .map((id) => byId[id])
-      .find((m) => m.chatId === currentChatId);
-    if (target) {
-      useMessages.getState().setLoading(target.id, false);
-      useMessages.getState().markCancel(target.id);
+  // 1. 断开 SSE 连接
+  clearSSE();
+
+  // 2. 通知后端停止生成
+  //    使用 activeSSEConversationId（生成会话的 ID），而非 currentConversationId（导航状态）
+  //    两者在用户切换会话后可能不同，混用会导致向错误会话发送取消请求
+  if (currentChatId && activeSSEConversationId) {
+    try {
+      await server.cancelChatByCoze(activeSSEConversationId, currentChatId);
+    } catch (error) {
+      console.error("取消对话失败:", error);
     }
-    useChatStore.getState().setIsChatCompleted(true);
-    useChatStore.getState().setCurrentChatId(null);
-    cancelStreamRef?.();
-    useChatStore.getState().clearCancelStreamRef();
-    antdMessage.success("对话已取消");
-  } else {
-    antdMessage.error("取消对话失败，请稍后再试");
   }
+
+  // 3. 重置流程状态
+  chatStore().setStatus(ChatStatus.Idle);
 }
 
 /**
@@ -378,34 +407,33 @@ export async function cancelCurrentStream() {
  */
 export function uploadFiles(files: File[]) {
   if (!files || files.length === 0) return;
-  // 构造本地 uploading 文件项
   const newFiles: ChatFile[] = files.map((file) => ({
     id: crypto.randomUUID(),
     name: file.name,
     size: file.size,
     type: isImageType(file.type) ? "image" : "file",
-    status: "uploading",
+    status: UploadStatus.Uploading,
     file,
   }));
-  useChatStore.getState().addFiles(newFiles);
+  chatStore().addFiles(newFiles);
 
-  // 并发上传
-  const currentConversationId =
-    useConversation.getState().currentConversationId;
+  const currentConversationId = convStore().currentConversationId;
   newFiles.forEach(({ id, name, file }) => {
     server
       .uploadFileByCoze(file as File, currentConversationId as string)
       .then((response) => {
         const { id: newId, url } = response.data || {};
-        useChatStore
-          .getState()
-          .updateFile(id, { id: newId, status: "done", url });
+        chatStore().updateFile(id, {
+          id: newId,
+          status: UploadStatus.Done,
+          url,
+        });
         antdMessage.success(`文件上传成功: ${name}`);
       })
       .catch((error) => {
-        useChatStore.getState().removeFile(id);
+        chatStore().removeFile(id);
         antdMessage.error(
-          `文件上传失败: ${name}，${error.message || "请稍后再试"}`
+          `文件上传失败: ${name}，${error.message || "请稍后再试"}`,
         );
       });
   });
@@ -418,36 +446,29 @@ export function uploadFiles(files: File[]) {
  */
 export function cancelFileUpload(fileId: string, filename: string) {
   if (!fileId || !filename) return;
-  useChatStore.getState().updateFile(fileId, { status: "canceling" });
+  chatStore().updateFile(fileId, { status: UploadStatus.Canceling });
   server
     .cancelFileUploadByCoze(fileId, filename)
     .then((result) => {
       const { status } = result.data || {};
       if (status === "canceled") {
-        useChatStore.getState().removeFile(fileId);
+        chatStore().removeFile(fileId);
       } else {
         throw new Error("取消文件上传失败");
       }
     })
     .catch(() => {
-      // 取消失败，恢复为 done
-      useChatStore.getState().updateFile(fileId, { status: "done" });
+      chatStore().updateFile(fileId, { status: UploadStatus.Done });
       antdMessage.error(`取消文件上传失败: ${filename}`);
     });
-}
-
-/**
- * 标记是否为第一次发送消息（影响是否加载历史消息）
- * @param isFirst - 是否为第一次发送消息
- */
-export function handleFirstChange(isFirst: boolean) {
-  useChatStore.getState().setIsFirst(!!isFirst);
 }
 
 /**
  * 重置聊天流程（不清除文件）
  */
 export function resetChatFlow() {
-  useMessages.getState().reset();
-  useChatStore.getState().resetFlowFlags();
+  chatStore().resetMessages();
+  chatStore().setStatus(ChatStatus.Idle);
+  chatStore().setCurrentChatId(null);
+  chatStore().setIsLoadingMessages(false);
 }

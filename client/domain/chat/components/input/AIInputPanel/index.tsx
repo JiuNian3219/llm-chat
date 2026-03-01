@@ -7,6 +7,7 @@ import {
 import { useChatStore } from "@/domain/chat/stores/chatStore";
 import { useConversation } from "@/domain/chat/stores/conversationStore";
 import type { StreamChatCallbacks } from "@/src/types/services";
+import { ChatStatus } from "@/src/types/store";
 import { ArrowUpOutlined } from "@ant-design/icons";
 import { Divider, Flex, Select } from "antd";
 import type { CSSProperties, KeyboardEvent } from "react";
@@ -39,7 +40,8 @@ interface AIInputPanelProps {
 const AIInputPanel = ({ callbacks, className, style }: AIInputPanelProps) => {
   const options = [{ value: "LLM", label: "LLM Chat" }];
   const [message, setMessage] = useState("");
-  const isChatCompleted = useChatStore((s) => s.isChatCompleted);
+  const status = useChatStore((s) => s.status);
+  const isGenerating = status === ChatStatus.Generating;
   const files = useChatStore((s) => s.files);
   const currentChatId = useChatStore((s) => s.currentChatId);
   const isLoadingMessages = useChatStore((s) => s.isLoadingMessages);
@@ -60,7 +62,7 @@ const AIInputPanel = ({ callbacks, className, style }: AIInputPanelProps) => {
     // 如果按下的是Ctrl + Enter，则发送消息
     if (e.ctrlKey && e.key === "Enter") {
       e.preventDefault();
-      if (!isChatCompleted || isLoadingMessages) return;
+      if (isGenerating || isLoadingMessages) return;
       handleSendMessage();
     }
   };
@@ -101,14 +103,14 @@ const AIInputPanel = ({ callbacks, className, style }: AIInputPanelProps) => {
           <FileUploadButton />
           <IconButton
             icon={
-              isChatCompleted ? (
+              !isGenerating ? (
                 <ArrowUpOutlined />
               ) : (
                 <div className={styles["stop-button-icon"]} />
               )
             }
-            onClick={isChatCompleted ? handleSendMessage : cancelCurrentStream}
-            loading={!currentChatId && !isChatCompleted}
+            onClick={!isGenerating ? handleSendMessage : cancelCurrentStream}
+            loading={!currentChatId && isGenerating}
             disabled={isLoadingMessages}
             type="primary"
             size={isMobile ? "small" : "medium"}

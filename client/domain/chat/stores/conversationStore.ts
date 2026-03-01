@@ -8,13 +8,21 @@ import { create } from "zustand";
  */
 export const useConversation = create<ConversationState & ConversationActions>(
   (set, get) => ({
+    /** 会话列表 */
     conversations: [],
+    /** 当前选中会话 ID */
     currentConversationId: null,
+    /** 当前会话标题 */
     currentTitle: "新对话",
+    /** 是否正在加载会话列表 */
     isLoadingList: false,
+    /** 是否正在加载会话标题 */
     isLoadingTitle: false,
+    /** 设置当前选中会话 ID */
     setCurrentConversationId: (id) => set({ currentConversationId: id }),
+    /** 设置当前会话标题 */
     setCurrentTitle: (title) => set({ currentTitle: title ?? "新对话" }),
+    /** 从服务器获取会话列表 */
     fetchConversations: async () => {
       try {
         set({ isLoadingList: true });
@@ -28,7 +36,9 @@ export const useConversation = create<ConversationState & ConversationActions>(
         set({ isLoadingList: false });
       }
     },
-    refreshConversations: async () => get().fetchConversations(),
+    /** 刷新会话列表（不清除当前选中） */
+    refreshConversations: () => get().fetchConversations(),
+    /** 从服务器获取当前会话标题 */
     fetchCurrentTitle: async (conversationId) => {
       if (!conversationId) {
         set({ currentTitle: "" });
@@ -45,6 +55,7 @@ export const useConversation = create<ConversationState & ConversationActions>(
         set({ isLoadingTitle: false });
       }
     },
+    /** 添加新会话到列表 */
     addNewConversation: (conversationId, title = "新对话") => {
       set((state) => {
         const exists = state.conversations.some(
@@ -59,6 +70,7 @@ export const useConversation = create<ConversationState & ConversationActions>(
         };
       });
     },
+    /** 更新会话标题 */
     updateConversationTitle: (conversationId, newTitle) => {
       set((state) => ({
         conversations: state.conversations.map((conv) =>
@@ -72,22 +84,18 @@ export const useConversation = create<ConversationState & ConversationActions>(
             : state.currentTitle,
       }));
     },
+    /** 重命名会话 */
     renameConversation: async (conversationId, newTitle) => {
       const title = (newTitle || "").trim().slice(0, 30) || "新对话";
       await server.updateConversationTitle(conversationId, title);
       get().updateConversationTitle(conversationId, title);
     },
+    /** 异步删除会话 */
     deleteConversationAsync: async (conversationId) => {
       await server.deleteConversation(conversationId);
-      const isCurrent = get().currentConversationId === conversationId;
-      set((state) => ({
-        conversations: state.conversations.filter(
-          (conv) => conv.conversationId !== conversationId
-        ),
-        currentConversationId: isCurrent ? null : state.currentConversationId,
-        currentTitle: isCurrent ? "" : state.currentTitle,
-      }));
+      get().removeConversation(conversationId);
     },
+    /** 从列表移除会话 */
     removeConversation: (conversationId) => {
       set((state) => {
         const isCurrent = state.currentConversationId === conversationId;

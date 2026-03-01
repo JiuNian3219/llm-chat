@@ -1,4 +1,4 @@
-import { useMessages } from "@/domain/chat/stores/messageStore";
+import { useChatStore } from "@/domain/chat/stores/chatStore";
 import type { CSSProperties } from "react";
 import { memo } from "react";
 import AIMessage from "../../message/AIMessage";
@@ -20,7 +20,7 @@ interface MessageItemProps {
  * @returns 渲染后的消息组件
  */
 const MessageItem = ({ id, index, total }: MessageItemProps) => {
-  const role = useMessages((s) => s.messagesById[id]?.role);
+  const role = useChatStore((s) => s.messagesById[id]?.role);
   if (role === "user") {
     return (
       <UserMessage
@@ -56,7 +56,7 @@ interface ChatMessagesProps {
  * @returns 渲染后的聊天消息列表组件
  */
 const ChatMessages = ({ className, style }: ChatMessagesProps) => {
-  const ids = useMessages((s) => s.messageIds);
+  const ids = useChatStore((s) => s.messageIds);
   const total = ids.length;
   return (
     <div

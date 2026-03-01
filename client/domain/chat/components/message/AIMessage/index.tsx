@@ -2,7 +2,8 @@ import DotPulseLoader from "@/base/components/DotPulseLoader";
 import IconButton from "@/base/components/IconButton";
 import useCopyToClipboard from "@/domain/chat/hooks/useCopyToClipboard";
 import { useChatStore } from "@/domain/chat/stores/chatStore";
-import { useMessages } from "@/domain/chat/stores/messageStore";
+import { MessageStatus } from "@/src/types/message";
+import { ChatStatus } from "@/src/types/store";
 import { WarningOutlined } from "@ant-design/icons";
 import { Flex, Spin } from "antd";
 import type { CSSProperties } from "react";
@@ -28,30 +29,26 @@ interface AIMessageProps {
  * @returns
  */
 const AIMessage = ({ messageId, isLast, className, style }: AIMessageProps) => {
-  const {
-    content,
-    isLoading,
-    isTextCompleted,
-    followUps = [],
-    isCancel,
-    isError,
-  } = useMessages((s) => s.messagesById[messageId] || {});
-  const isChatCompleted = useChatStore((s) => s.isChatCompleted);
+  const msg = useChatStore((s) => s.messagesById[messageId]);
+  const chatStatus = useChatStore((s) => s.status);
   const { copyText, getCopyIcon } = useCopyToClipboard();
-  const hasContent = !!content;
-  // 是否展示加载态，当正在加载，没有内容，不是取消，不是错误时展示
-  const showLoader = isLoading && !hasContent && !isCancel && !isError;
-  const showError = !!isError;
-  // 是否应该展示操作按钮，当有内容，不是加载中，不是取消，不是错误时展示
-  const showActions = hasContent && !isLoading && !isCancel && !isError;
-  // 是否展示后续消息，当不是加载中，不是取消，是最后一条消息时展示
-  const showFollowUps = !isLoading && !isCancel && !!isLast;
-  // 是否展示取消提示，当是取消，是最后一条消息时展示
-  const showCancelTip = !!isCancel;
+
+  const { content = "", status = MessageStatus.Pending, followUps = [] } = msg || {};
+
+  // status 已经完整表达消息状态，直接推导各 UI 开关
+  const isCompleted = status !== MessageStatus.Pending && status !== MessageStatus.Streaming;
+  const showLoader = status === MessageStatus.Pending;
+  const showError = status === MessageStatus.Error;
+  // 显示操作按钮：内容已完成且有实际文本
+  const showActions = status === MessageStatus.Completed && !!content;
+  // 显示 follow-up 区域：消息已完成且是最后一条
+  const showFollowUps = status === MessageStatus.Completed && isLast;
+  const showCancelTip = status === MessageStatus.Canceled;
+  // follow_up 加载中：文本已完成（Completed）但还未收到任何建议，且会话仍在生成
   const isFollowUpsLoading =
-    !!isTextCompleted && followUps.length === 0 && !isChatCompleted;
+    status === MessageStatus.Completed && followUps.length === 0 && chatStatus === ChatStatus.Generating;
+
   const handleCopyMessage = async () => {
-    // 如果没有消息则不执行复制操作
     if (!content) return;
     await copyText(content);
   };
@@ -80,7 +77,7 @@ const AIMessage = ({ messageId, isLast, className, style }: AIMessageProps) => {
             <>
               <MarkdownMessage
                 message={content}
-                isCompleted={!!isTextCompleted}
+                isCompleted={isCompleted}
               />
               {showActions && (
                 <Flex className={styles["button-container"]}>
@@ -110,9 +107,7 @@ const AIMessage = ({ messageId, isLast, className, style }: AIMessageProps) => {
                     key={index}
                     message={item}
                     className="animation-fade-in"
-                    style={{
-                      animationDelay: `${index * 0.05}s`,
-                    }}
+                    style={{ animationDelay: `${index * 0.05}s` }}
                   />
                 ))
               )}
