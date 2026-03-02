@@ -20,7 +20,7 @@ interface ValidationResult {
   errors: string[];
 }
 
-function validateFiles(incoming: File[]): ValidationResult {
+export function validateFiles(incoming: File[]): ValidationResult {
   const existing = fileStore().files;
   const valid: File[] = [];
   const errors: string[] = [];
