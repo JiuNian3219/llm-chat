@@ -1,8 +1,8 @@
+# 生产部署用：拉取 CI 构建的镜像，不在服务器上 build
+# 镜像名由 deploy workflow 注入
 services:
   client:
-    build:
-      context: ./client
-      dockerfile: Dockerfile
+    image: ${IMAGE_CLIENT}
     container_name: llm-chat-client
     ports:
       - "${APP_PORT:-80}:80"
@@ -13,9 +13,7 @@ services:
     restart: unless-stopped
 
   server:
-    build:
-      context: ./server
-      dockerfile: Dockerfile
+    image: ${IMAGE_SERVER}
     container_name: llm-chat-server
     env_file: .env
     environment:
@@ -29,7 +27,6 @@ services:
       - mongo
       - redis
     restart: unless-stopped
-    # 限制写入范围与提权，恶意文件即使落地也难扩散
     read_only: true
     security_opt:
       - no-new-privileges:true
