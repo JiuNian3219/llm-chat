@@ -64,6 +64,9 @@ jobs:
           port: ${{ secrets.SSH_PORT || 22 }}
           envs: COZE_API_TOKEN,COZE_BOT_ID,CORS_ORIGIN,APP_PORT,IMAGE_CLIENT,IMAGE_SERVER
           script: |
+            set -e
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
+
             mkdir -p $HOME/llm-chat && cd $HOME/llm-chat
 
             cat > .env << EOF
