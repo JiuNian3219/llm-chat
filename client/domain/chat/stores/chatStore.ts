@@ -24,13 +24,6 @@ export const useChatStore = create<ChatStoreState & ChatStoreActions>((set) => (
   status: ChatStatus.Idle,
   /** 当前流式聊天 ID（用于取消） */
   currentChatId: null,
-  /**
-   * 正在生成的会话 ID（SSE 会话上下文，与 currentConversationId 严格区分）
-   * currentConversationId 是导航/UI 状态（用户在看哪个会话）
-   * activeSSEConversationId 是运行时状态（哪个会话的 SSE 正在生成）
-   * 用户切换会话时两者可以不同
-   */
-  activeSSEConversationId: null,
   /** 当前活跃 SSE 连接的取消函数（非序列化状态，仅运行时使用） */
   cancelSSE: null,
   /** 是否正在加载历史消息 */
@@ -98,8 +91,6 @@ export const useChatStore = create<ChatStoreState & ChatStoreActions>((set) => (
   setStatus: (status: ChatStatus) => set({ status }),
   /** 设置当前流式聊天 ID */
   setCurrentChatId: (id: string | null) => set({ currentChatId: id }),
-  /** 设置正在生成的会话 ID */
-  setActiveSSEConversationId: (id) => set({ activeSSEConversationId: id }),
   /** 设置当前活跃 SSE 连接的取消函数 */
   setCancelSSE: (fn) => set({ cancelSSE: fn }),
   /** 设置是否正在加载历史消息 */

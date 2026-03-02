@@ -20,13 +20,6 @@ export interface ChatStoreState {
   status: ChatStatus;
   /** 当前流式聊天 ID（用于取消） */
   currentChatId: string | null;
-  /**
-   * 正在生成的会话 ID（SSE 会话上下文，与 currentConversationId 严格区分）
-   * currentConversationId 是导航/UI 状态（用户在看哪个会话）
-   * activeSSEConversationId 是运行时状态（哪个会话的 SSE 正在生成）
-   * 用户切换会话时两者可以不同
-   */
-  activeSSEConversationId: string | null;
   /** 当前活跃 SSE 连接的取消函数（非序列化状态，仅运行时使用） */
   cancelSSE: (() => void) | null;
   /** 是否正在加载历史消息 */
@@ -54,8 +47,6 @@ export interface ChatStoreActions {
   setStatus: (_status: ChatStatus) => void;
   /** 设置当前流式聊天 ID */
   setCurrentChatId: (_id: string | null) => void;
-  /** 设置正在生成的会话 ID */
-  setActiveSSEConversationId: (_id: string | null) => void;
   /** 设置当前活跃 SSE 连接的取消函数 */
   setCancelSSE: (_fn: (() => void) | null) => void;
   /** 设置是否正在加载历史消息 */

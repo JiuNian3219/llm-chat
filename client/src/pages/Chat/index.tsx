@@ -3,7 +3,7 @@ import AIFooterTip from "@/domain/chat/components/AIFooterTip";
 import AIInputPanel from "@/domain/chat/components/input/AIInputPanel";
 import ChatMessages from "@/domain/chat/components/structure/ChatMessages";
 import { useChatScroll } from "@/domain/chat/hooks/useChatScroll";
-import { loadConversationMessages } from "@/domain/chat/services/chatService";
+import { clearSSE, loadConversationMessages } from "@/domain/chat/services/chatService";
 import { useChatStore } from "@/domain/chat/stores/chatStore";
 import { useConversation } from "@/domain/chat/stores/conversationStore";
 import { ChatStatus } from "@/src/types/store";
@@ -49,6 +49,10 @@ const Chat = () => {
 
   useEffect(() => {
     if (!conversationId) return;
+    // clearSSE 先于 setCurrentConversationId 执行，确保切换会话时两者始终同步
+    if (!location.state?.skipLoad) {
+      clearSSE();
+    }
     setCurrentConversationId(conversationId);
     fetchCurrentTitle(conversationId);
     // Home 页首次发送消息后跳转时携带 skipLoad，避免覆盖正在生成的消息

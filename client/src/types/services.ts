@@ -11,6 +11,8 @@ export interface SSEStartData {
   type: "start";
   /** 会话 ID */
   conversationId: string;
+  /** 断线重连时由后端携带，用于立即恢复 currentChatId，避免按钮短暂转圈 */
+  chatId?: string | null;
 }
 
 export interface SSEMessageData {

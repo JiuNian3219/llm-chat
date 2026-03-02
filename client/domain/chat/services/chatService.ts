@@ -51,7 +51,7 @@ export function clearSSE() {
   cancelSSE?.();
   chatStore().setCancelSSE(null);
   chatStore().setCurrentChatId(null);
-  chatStore().setActiveSSEConversationId(null);
+  chatStore().setStatus(ChatStatus.Idle);
 }
 
 // ─── 流结束后的跨域协调 ───────────────────────────────────────────────────────
@@ -152,7 +152,10 @@ function buildSSECallbacks(
       if (!sseConversationId) {
         sseConversationId = data.conversationId;
       }
-      chatStore().setActiveSSEConversationId(sseConversationId);
+      // 断线重连时后端会携带 chatId，立即写入避免按钮短暂转圈
+      if (data.chatId) {
+        chatStore().setCurrentChatId(data.chatId);
+      }
       engine.pushEvent(data);
       onStartExtra?.(data.conversationId);
       external.onStart?.(data);
@@ -234,9 +237,8 @@ export async function loadConversationMessages(conversationId: string | null) {
       chatStore().appendMessage(aiMessage);
       chatStore().setStatus(ChatStatus.Generating);
 
-      chatStore().setActiveSSEConversationId(conversationId);
-      const engine = new PlayEngine(aiMessage.id, createHandlers(aiMessage.id));
-      const cancelFn = server.subscribeChatByConversation(
+    const engine = new PlayEngine(aiMessage.id, createHandlers(aiMessage.id));
+    const cancelFn = server.subscribeChatByConversation(
         conversationId,
         buildSSECallbacks(engine, aiMessage.id, {
           sseConversationId: conversationId,
@@ -336,11 +338,6 @@ export async function sendStreamMessage({
     const activeConversationId =
       conversationId || convStore().currentConversationId;
 
-    // 已知 conversationId 时提前写入，新建会话场景将在 onStart 回调中补全
-    if (activeConversationId) {
-      chatStore().setActiveSSEConversationId(activeConversationId);
-    }
-
     const engine = new PlayEngine(aiMessage.id, createHandlers(aiMessage.id));
 
     // 标题轮询取消句柄，在 SSE 结束/出错时停止
@@ -381,18 +378,17 @@ export async function sendStreamMessage({
  * 取消当前流式对话
  */
 export async function cancelCurrentStream() {
-  // 必须在 clearSSE() 之前读取，因为 clearSSE 会清空这两个字段
-  const { currentChatId, activeSSEConversationId } = chatStore();
+  // 必须在 clearSSE() 之前读取，因为 clearSSE 会清空 currentChatId
+  const { currentChatId } = chatStore();
+  const conversationId = convStore().currentConversationId;
 
   // 1. 断开 SSE 连接
   clearSSE();
 
   // 2. 通知后端停止生成
-  //    使用 activeSSEConversationId（生成会话的 ID），而非 currentConversationId（导航状态）
-  //    两者在用户切换会话后可能不同，混用会导致向错误会话发送取消请求
-  if (currentChatId && activeSSEConversationId) {
+  if (currentChatId && conversationId) {
     try {
-      await server.cancelChatByCoze(activeSSEConversationId, currentChatId);
+      await server.cancelChatByCoze(conversationId, currentChatId);
     } catch (error) {
       console.error("取消对话失败:", error);
     }
@@ -406,8 +402,8 @@ export async function cancelCurrentStream() {
  * 重置聊天流程（不清除文件）
  */
 export function resetChatFlow() {
+  clearSSE();
   chatStore().resetMessages();
   chatStore().setStatus(ChatStatus.Idle);
-  chatStore().setCurrentChatId(null);
   chatStore().setIsLoadingMessages(false);
 }
