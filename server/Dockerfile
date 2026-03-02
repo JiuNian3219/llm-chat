@@ -1,3 +1,13 @@
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
+
 FROM node:20-alpine
 
 WORKDIR /app
@@ -5,8 +15,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev
 
-COPY . .
-RUN npm run build
+COPY --from=builder /app/dist ./dist
 
 # 非 root 运行，减小入侵后的影响范围
 RUN addgroup -g 1001 -S app && adduser -u 1001 -S app -G app
