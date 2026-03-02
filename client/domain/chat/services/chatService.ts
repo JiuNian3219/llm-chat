@@ -1,12 +1,12 @@
 import server from "@/domain/chat/services";
 import { useChatStore } from "@/domain/chat/stores/chatStore";
 import { useConversation } from "@/domain/chat/stores/conversationStore";
+import { useFileStore } from "@/domain/chat/stores/fileStore";
 import {
   formatServerMessages,
   generateMultimodalMessage,
-  isImageType,
 } from "@/domain/chat/utils";
-import { UploadStatus, type ChatFile } from "@/src/types/chat";
+import type { ChatFile } from "@/src/types/chat";
 import { MessageStatus, type ChatMessage } from "@/src/types/message";
 import type { SSEErrorData, StreamChatCallbacks } from "@/src/types/services";
 import type { ContentType } from "@/src/types/services";
@@ -17,6 +17,7 @@ import { PlayEngine, type PlayEngineHandlers } from "./PlayEngine";
 // ─── Store 快捷引用 ───────────────────────────────────────────────────────────
 const chatStore = () => useChatStore.getState();
 const convStore = () => useConversation.getState();
+const fileStore = () => useFileStore.getState();
 
 // ─── PlayEngine 工厂 ──────────────────────────────────────────────────────────
 
@@ -295,7 +296,7 @@ export async function sendStreamMessage({
       });
   }
 
-  const files = attachments || chatStore().files || [];
+  const files = attachments || fileStore().files || [];
 
   const userMessage: ChatMessage = {
     id: crypto.randomUUID(),
@@ -305,7 +306,7 @@ export async function sendStreamMessage({
     chatId: null,
     status: MessageStatus.Completed,
     followUps: [],
-    files: files as any,
+    files,
   };
   chatStore().appendMessage(userMessage);
 
@@ -328,7 +329,7 @@ export async function sendStreamMessage({
       : trimmedMessage;
 
   if (!attachments) {
-    chatStore().setFiles([]);
+    fileStore().setFiles([]);
   }
 
   try {
@@ -399,68 +400,6 @@ export async function cancelCurrentStream() {
 
   // 3. 重置流程状态
   chatStore().setStatus(ChatStatus.Idle);
-}
-
-/**
- * 上传文件列表
- * @param files - 文件列表
- */
-export function uploadFiles(files: File[]) {
-  if (!files || files.length === 0) return;
-  const newFiles: ChatFile[] = files.map((file) => ({
-    id: crypto.randomUUID(),
-    name: file.name,
-    size: file.size,
-    type: isImageType(file.type) ? "image" : "file",
-    status: UploadStatus.Uploading,
-    file,
-  }));
-  chatStore().addFiles(newFiles);
-
-  const currentConversationId = convStore().currentConversationId;
-  newFiles.forEach(({ id, name, file }) => {
-    server
-      .uploadFileByCoze(file as File, currentConversationId as string)
-      .then((response) => {
-        const { id: newId, url } = response.data || {};
-        chatStore().updateFile(id, {
-          id: newId,
-          status: UploadStatus.Done,
-          url,
-        });
-        antdMessage.success(`文件上传成功: ${name}`);
-      })
-      .catch((error) => {
-        chatStore().removeFile(id);
-        antdMessage.error(
-          `文件上传失败: ${name}，${error.message || "请稍后再试"}`,
-        );
-      });
-  });
-}
-
-/**
- * 取消文件上传
- * @param fileId - 文件ID
- * @param filename - 文件名
- */
-export function cancelFileUpload(fileId: string, filename: string) {
-  if (!fileId || !filename) return;
-  chatStore().updateFile(fileId, { status: UploadStatus.Canceling });
-  server
-    .cancelFileUploadByCoze(fileId, filename)
-    .then((result) => {
-      const { status } = result.data || {};
-      if (status === "canceled") {
-        chatStore().removeFile(fileId);
-      } else {
-        throw new Error("取消文件上传失败");
-      }
-    })
-    .catch(() => {
-      chatStore().updateFile(fileId, { status: UploadStatus.Done });
-      antdMessage.error(`取消文件上传失败: ${filename}`);
-    });
 }
 
 /**

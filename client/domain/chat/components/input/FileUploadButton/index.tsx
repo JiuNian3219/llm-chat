@@ -1,6 +1,6 @@
 import IconButton from "@/base/components/IconButton";
 import { UPLOAD_LIMITS } from "@/domain/chat/const";
-import { uploadFiles } from "@/domain/chat/services/chatService";
+import { uploadFiles } from "@/domain/chat/services/fileUploadService";
 import { PaperClipOutlined } from "@ant-design/icons";
 import type { CSSProperties, ChangeEvent } from "react";
 import { useRef } from "react";

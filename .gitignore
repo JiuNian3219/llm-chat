@@ -24,6 +24,9 @@ dist-ssr
 *.sw?
 .trae
 .cursor
+.architext
+.claude
+architext.json
 
 # client
 /client/dist

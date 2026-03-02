@@ -1,4 +1,3 @@
-import type { ChatFile } from "@/src/types/chat";
 import type { ChatMessage, MessageStatus } from "@/src/types/message";
 import { ChatStatus, type ChatStoreActions, type ChatStoreState } from "@/src/types/store";
 import { create } from "zustand";
@@ -36,8 +35,6 @@ export const useChatStore = create<ChatStoreState & ChatStoreActions>((set) => (
   cancelSSE: null,
   /** 是否正在加载历史消息 */
   isLoadingMessages: false,
-  /** 待发送/已上传文件列表 */
-  files: [],
 
   /** 从服务器获取消息 */
   setFromServer: (messages: ChatMessage[]) => {
@@ -107,25 +104,4 @@ export const useChatStore = create<ChatStoreState & ChatStoreActions>((set) => (
   setCancelSSE: (fn) => set({ cancelSSE: fn }),
   /** 设置是否正在加载历史消息 */
   setIsLoadingMessages: (v: boolean) => set({ isLoadingMessages: v }),
-
-  /** 设置待发送/已上传文件列表 */
-  setFiles: (files: ChatFile[]) => set({ files }),
-
-  /** 添加待发送/已上传文件 */
-  addFiles: (files: ChatFile[]) =>
-    set((state) => ({ files: state.files.concat(files || []) })),
-
-  /** 更新待发送/已上传文件 */
-  updateFile: (id: string, partial: Partial<ChatFile>) =>
-    set((state) => {
-      const idx = state.files.findIndex((f) => f.id === id);
-      if (idx === -1) return state;
-      const next = state.files.slice();
-      next[idx] = { ...next[idx], ...partial };
-      return { files: next };
-    }),
-
-  /** 移除待发送/已上传文件 */
-  removeFile: (id: string) =>
-    set((state) => ({ files: state.files.filter((f) => f.id !== id) })),
 }));

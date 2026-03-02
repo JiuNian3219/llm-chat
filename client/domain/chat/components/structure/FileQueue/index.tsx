@@ -9,6 +9,7 @@ interface FileQueueProps {
   direction?: "left" | "right";
   maxHeight?: boolean;
   close?: boolean;
+  onCancel?: (fileId: string, filename: string) => void;
   className?: string;
   style?: CSSProperties;
 }
@@ -26,6 +27,7 @@ interface FileQueueProps {
 const FileQueue = ({
   files,
   close = true,
+  onCancel,
   direction = "left",
   maxHeight = true,
   className,
@@ -52,6 +54,7 @@ const FileQueue = ({
           key={file.id}
           file={file}
           close={close}
+          onCancel={onCancel}
         />
       ))}
     </Flex>

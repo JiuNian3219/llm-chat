@@ -1,5 +1,4 @@
 import IconButton from "@/base/components/IconButton";
-import { cancelFileUpload } from "@/domain/chat/services/chatService";
 import { formatFileSize, getFormattedFileType } from "@/domain/chat/utils";
 import fileIcon from "@/src/assets/file.svg";
 import ImageFailedIcon from "@/src/assets/image-failed.svg";
@@ -14,6 +13,7 @@ import styles from "./index.module.css";
 interface FilePreviewProps {
   file: ChatFile;
   close?: boolean;
+  onCancel?: (fileId: string, filename: string) => void;
 }
 
 /**
@@ -21,8 +21,9 @@ interface FilePreviewProps {
  * @param props
  * @param props.file - 文件对象，包含name, type, size等属性
  * @param props.close - 是否显示关闭按钮，默认为true
+ * @param props.onCancel - 取消/移除文件的回调
  */
-const FilePreview = ({ file, close = true }: FilePreviewProps) => {
+const FilePreview = ({ file, close = true, onCancel }: FilePreviewProps) => {
   const [imageVisible, setImageVisible] = useState(false);
   const { id, name, size, type, url, status } = file;
   const isImage = type === "image";
@@ -41,7 +42,7 @@ const FilePreview = ({ file, close = true }: FilePreviewProps) => {
 
   const handleCancelUpload = (e: MouseEvent) => {
     e.stopPropagation();
-    cancelFileUpload(id, name);
+    onCancel?.(id, name);
   };
 
   return (

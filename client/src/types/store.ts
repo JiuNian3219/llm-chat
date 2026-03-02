@@ -1,4 +1,3 @@
-import type { ChatFile } from "./chat";
 import type { ChatMessage, MessageStatus } from "./message";
 
 export const ChatStatus = {
@@ -32,8 +31,6 @@ export interface ChatStoreState {
   cancelSSE: (() => void) | null;
   /** 是否正在加载历史消息 */
   isLoadingMessages: boolean;
-  /** 待发送/已上传文件列表 */
-  files: ChatFile[];
 }
 
 export interface ChatStoreActions {
@@ -63,14 +60,6 @@ export interface ChatStoreActions {
   setCancelSSE: (_fn: (() => void) | null) => void;
   /** 设置是否正在加载历史消息 */
   setIsLoadingMessages: (_v: boolean) => void;
-  /** 设置待发送/已上传文件列表 */
-  setFiles: (_files: ChatFile[]) => void;
-  /** 添加待发送/已上传文件 */
-  addFiles: (_files: ChatFile[]) => void;
-  /** 更新待发送/已上传文件 */
-  updateFile: (_id: string, _partial: Partial<ChatFile>) => void;
-  /** 移除待发送/已上传文件 */
-  removeFile: (_id: string) => void;
 }
 
 /**

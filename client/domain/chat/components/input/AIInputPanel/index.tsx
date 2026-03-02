@@ -4,8 +4,10 @@ import {
   cancelCurrentStream,
   sendStreamMessage,
 } from "@/domain/chat/services/chatService";
+import { cancelFileUpload } from "@/domain/chat/services/fileUploadService";
 import { useChatStore } from "@/domain/chat/stores/chatStore";
 import { useConversation } from "@/domain/chat/stores/conversationStore";
+import { useFileStore } from "@/domain/chat/stores/fileStore";
 import type { StreamChatCallbacks } from "@/src/types/services";
 import { ChatStatus } from "@/src/types/store";
 import { ArrowUpOutlined } from "@ant-design/icons";
@@ -42,7 +44,7 @@ const AIInputPanel = ({ callbacks, className, style }: AIInputPanelProps) => {
   const [message, setMessage] = useState("");
   const status = useChatStore((s) => s.status);
   const isGenerating = status === ChatStatus.Generating;
-  const files = useChatStore((s) => s.files);
+  const files = useFileStore((s) => s.files);
   const currentChatId = useChatStore((s) => s.currentChatId);
   const isLoadingMessages = useChatStore((s) => s.isLoadingMessages);
   const currentConversationId = useConversation((s) => s.currentConversationId);
@@ -75,6 +77,7 @@ const AIInputPanel = ({ callbacks, className, style }: AIInputPanelProps) => {
     >
       <FileQueue
         files={files}
+        onCancel={cancelFileUpload}
         className={styles["file-queue"]}
       />
       <MultilineInput

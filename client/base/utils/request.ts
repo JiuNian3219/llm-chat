@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosResponse } from "axios";
+import axios, { AxiosInstance, AxiosResponse, isCancel } from "axios";
 
 /**
  * Axios 实例
@@ -46,6 +46,9 @@ instance.interceptors.response.use(
     return Promise.reject(new Error(msg || "请求失败"));
   },
   (error) => {
+    if (isCancel(error)) {
+      return Promise.reject(error);
+    }
     const { data } = (error.response || {}) as AxiosResponse<any>;
     if (data) {
       return Promise.reject(new Error((data as any).msg || "请求失败"));

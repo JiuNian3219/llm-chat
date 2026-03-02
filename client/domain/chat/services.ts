@@ -1,11 +1,9 @@
 import request from "@/base/utils/request";
 import api from "@/domain/chat/const/api";
 import type {
-  CancelResponse,
   ContentType,
   SSEEventData,
   StreamChatCallbacks,
-  UploadResponse,
 } from "@/src/types/services";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 
@@ -198,48 +196,6 @@ function cancelChatByCoze(conversationId: string, chatId: string) {
 }
 
 /**
- * 上传文件
- * @param file - 文件对象
- * @param conversationId - 会话ID
- */
-function uploadFileByCoze(file: File, conversationId: string) {
-  if (!file) {
-    return Promise.reject(new Error("file不能为空"));
-  }
-  const { url, method } = coze.upload;
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("conversationId", conversationId);
-
-  return request(url, {
-    method,
-    data: formData,
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  }) as Promise<{ data: UploadResponse }>;
-}
-
-/**
- * 取消文件上传
- * @param fileId - 文件ID
- * @param filename - 文件名
- */
-function cancelFileUploadByCoze(fileId: string, filename: string) {
-  if (!fileId || !filename) {
-    return Promise.reject(new Error("fileId和filename不能为空"));
-  }
-  const { url, method } = coze.cancelUpload;
-  return request(url, {
-    method,
-    data: {
-      fileId,
-      filename,
-    },
-  }) as Promise<{ data: CancelResponse }>;
-}
-
-/**
  * 获取所有会话列表
  */
 function getAllConversationList() {
@@ -324,8 +280,6 @@ export default {
   subscribeChatByConversation,
   nonStreamChatByCoze,
   cancelChatByCoze,
-  uploadFileByCoze,
-  cancelFileUploadByCoze,
   getAllConversationList,
   getConversationList,
   getConversationDetail,
