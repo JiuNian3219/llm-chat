@@ -33,6 +33,8 @@ export interface ChatStoreActions {
   appendMessage: (_message: ChatMessage) => void;
   /** 追加内容 */
   appendContent: (_id: string, _delta: string) => void;
+  /** 追加思考链增量 */
+  appendReasoning: (_id: string, _delta: string) => void;
   /** 设置消息状态 */
   setMessageStatus: (_id: string, _status: MessageStatus) => void;
   /** 设置消息关联的 chatId */

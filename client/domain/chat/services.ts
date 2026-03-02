@@ -32,6 +32,7 @@ function openSSEConnection(
       onStart,
       onSnapshot,
       onMessage,
+      onReasoning,
       onCompleted,
       onFollowUp,
       onDone,
@@ -59,6 +60,9 @@ function openSSEConnection(
             break;
           case "message":
             onMessage?.(data);
+            break;
+          case "reasoning":
+            onReasoning?.(data);
             break;
           case "completed":
             onCompleted?.(data);

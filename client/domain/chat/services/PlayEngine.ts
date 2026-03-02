@@ -8,6 +8,8 @@ import { ChatStatus } from "@/src/types/store";
 export interface PlayEngineHandlers {
   /** 追加文本增量 */
   onContentDelta: (delta: string) => void;
+  /** 追加思考链增量 */
+  onReasoningDelta: (delta: string) => void;
   /** 断线重连后全量覆盖内容 */
   onSnapshot: (content: string) => void;
   /** 更新消息状态 */
@@ -61,6 +63,7 @@ export class PlayEngine {
     this.buffer = [];
 
     let textDelta = "";
+    let reasoningDelta = "";
     let shouldFinish = false;
     let finishMsgStatus: MessageStatus = MessageStatus.Completed;
     let finishChatStatus: ChatStatus = ChatStatus.Idle;
@@ -86,7 +89,7 @@ export class PlayEngine {
           break;
 
         case "reasoning":
-          // 推理内容暂不渲染，预留扩展
+          reasoningDelta += event.content || "";
           break;
 
         case "completed":
@@ -112,6 +115,11 @@ export class PlayEngine {
           errorMsg = event.error || "生成出错";
           break;
       }
+    }
+
+    // 应用思考链增量（reasoning 先于正文到达，不触发状态迁移）
+    if (reasoningDelta) {
+      this.handlers.onReasoningDelta(reasoningDelta);
     }
 
     // 应用文本增量

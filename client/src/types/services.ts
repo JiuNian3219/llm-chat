@@ -29,6 +29,12 @@ export interface SSESnapshotData {
   content: string;
 }
 
+export interface SSEReasoningData {
+  type: "reasoning";
+  /** 思考链增量内容 */
+  content: string;
+}
+
 export interface SSECompletedData {
   type: "completed";
 }
@@ -56,6 +62,7 @@ export type SSEEventData =
   | SSEStartData
   | SSEMessageData
   | SSESnapshotData
+  | SSEReasoningData
   | SSECompletedData
   | SSEFollowUpData
   | SSEDoneData
@@ -71,6 +78,8 @@ export interface StreamChatCallbacks {
   onSnapshot?: (_data: SSESnapshotData) => void;
   /** 每次增量消息（含 content / chatId） */
   onMessage?: (_data: SSEMessageData) => void;
+  /** 思考链增量（reasoning/chain-of-thought） */
+  onReasoning?: (_data: SSEReasoningData) => void;
   /** 本轮文本生成完毕 */
   onCompleted?: (_data: SSECompletedData) => void;
   /** AI 的跟进建议 */

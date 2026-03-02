@@ -10,6 +10,7 @@ import type { CSSProperties } from "react";
 import { memo } from "react";
 import FollowUpMessage from "../FollowUpMessage";
 import MarkdownMessage from "../MarkdownMessage";
+import ReasoningBlock from "../ReasoningBlock";
 import styles from "./index.module.css";
 
 interface AIMessageProps {
@@ -33,11 +34,13 @@ const AIMessage = ({ messageId, isLast, className, style }: AIMessageProps) => {
   const chatStatus = useChatStore((s) => s.status);
   const { copyText, getCopyIcon } = useCopyToClipboard();
 
-  const { content = "", status = MessageStatus.Pending, followUps = [] } = msg || {};
+  const { content = "", status = MessageStatus.Pending, followUps = [], reasoning = "" } = msg || {};
 
   // status 已经完整表达消息状态，直接推导各 UI 开关
   const isCompleted = status !== MessageStatus.Pending && status !== MessageStatus.Streaming;
-  const showLoader = status === MessageStatus.Pending;
+  // 有 reasoning 内容时，不显示 loading 动画
+  const showLoader = status === MessageStatus.Pending && !reasoning;
+  const showReasoning = !!reasoning;
   const showError = status === MessageStatus.Error;
   // 显示操作按钮：内容已完成且有实际文本
   const showActions = status === MessageStatus.Completed && !!content;
@@ -75,6 +78,12 @@ const AIMessage = ({ messageId, isLast, className, style }: AIMessageProps) => {
             </Flex>
           ) : (
             <>
+              {showReasoning && (
+                <ReasoningBlock
+                  reasoning={reasoning}
+                  isStreaming={!isCompleted}
+                />
+              )}
               <MarkdownMessage
                 message={content}
                 isCompleted={isCompleted}

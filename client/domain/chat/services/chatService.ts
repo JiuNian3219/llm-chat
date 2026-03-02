@@ -28,6 +28,7 @@ const fileStore = () => useFileStore.getState();
 function createHandlers(messageId: string): PlayEngineHandlers {
   return {
     onContentDelta: (delta) => chatStore().appendContent(messageId, delta),
+    onReasoningDelta: (delta) => chatStore().appendReasoning(messageId, delta),
     onSnapshot: (content) => chatStore().setContent(messageId, content),
     onMessageStatus: (status) =>
       chatStore().setMessageStatus(messageId, status),
@@ -173,6 +174,9 @@ function buildSSECallbacks(
       }
       engine.pushEvent(data);
       external.onMessage?.(data);
+    },
+    onReasoning: (data) => {
+      engine.pushEvent(data);
     },
     onCompleted: (data) => {
       engine.pushEvent(data);

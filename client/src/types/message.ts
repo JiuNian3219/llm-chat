@@ -35,6 +35,8 @@ export interface ChatMessage {
   role: Role;
   /** 文本内容（当为多模态时为解析后的纯文本） */
   content: string;
+  /** AI 思考链内容（reasoning/chain-of-thought），仅 assistant 消息存在 */
+  reasoning?: string;
   /** 会话内单次聊天标识（用于取消流式） */
   chatId: string | null;
   /** 会话标识 */

@@ -57,6 +57,15 @@ export const useChatStore = create<ChatStoreState & ChatStoreActions>((set) => (
     });
   },
 
+  /** 追加思考链增量 */
+  appendReasoning: (id: string, delta: string) => {
+    set((state) => {
+      const prev = state.messagesById[id];
+      if (!prev) return state;
+      return patchMessage(state, id, { reasoning: (prev.reasoning || "") + (delta || "") });
+    });
+  },
+
   /** 设置消息状态 */
   setMessageStatus: (id: string, status: MessageStatus) => {
     set((state) => patchMessage(state, id, { status }));
