@@ -13,6 +13,13 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./"),
     },
   },
+  test: {
+    environment: "jsdom",
+    globals: true,
+    alias: {
+      "@": path.resolve(__dirname, "./"),
+    },
+  },
   server: {
     port: 5173,
     proxy: {
