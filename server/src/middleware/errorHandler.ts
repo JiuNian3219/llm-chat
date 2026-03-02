@@ -20,7 +20,7 @@ export const errorHandler = (
 
   // 处理自定义应用错误
   if (err.isAppError) {
-    return error(res, err.message, err.code);
+    return error(res, err.message, err.statusCode);
   }
 
   // 处理文件上传错误
@@ -48,5 +48,7 @@ export const errorHandler = (
  */
 export const asyncHandler =
   (fn: RequestHandler) => (req: Request, res: Response, next: NextFunction) => {
-    Promise.resolve(fn(req, res, next)).catch(next);
+    // Promise.resolve().then() 确保 fn 始终在 Promise 链内执行，
+    // 同步 throw 和 async reject 都能被 .catch(next) 捕获
+    Promise.resolve().then(() => fn(req, res, next)).catch(next);
   };
