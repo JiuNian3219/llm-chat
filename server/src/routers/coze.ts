@@ -14,7 +14,7 @@ import {
     subscribeChatHandler,
 } from "../controllers/coze.js";
 import { uploadMiddleware } from "../middleware/upload.js";
-
+import { validateFileMagic } from "../middleware/validateFileMagic.js";
 
 const router = express.Router();
 
@@ -26,7 +26,7 @@ router.post("/chat/nonStream", nonStreamChatHandler);
 
 router.post("/chat/cancel", cancelChatHandler);
 
-router.post("/upload", uploadMiddleware, uploadFileHandler);
+router.post("/upload", uploadMiddleware, validateFileMagic, uploadFileHandler);
 
 router.post("/cancelUpload", cancelFileUploadHandler);
 
