@@ -64,7 +64,8 @@ jobs:
           port: ${{ secrets.SSH_PORT || 22 }}
           envs: COZE_API_TOKEN,COZE_BOT_ID,CORS_ORIGIN,APP_PORT,IMAGE_CLIENT,IMAGE_SERVER
           script: |
-            mkdir -p /opt/llm-chat && cd /opt/llm-chat
+            sudo mkdir -p /opt/llm-chat && sudo chown $(whoami):$(whoami) /opt/llm-chat
+            cd /opt/llm-chat
 
             cat > .env << EOF
             COZE_API_TOKEN=$COZE_API_TOKEN
