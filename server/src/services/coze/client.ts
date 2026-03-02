@@ -1,7 +1,6 @@
 import { COZE_CN_BASE_URL, CozeAPI } from "@coze/api";
-import dotenv from "dotenv";
 
-dotenv.config();
+import "../../config/loadEnv.js";
 
 export function getBotId(): string {
   const id = process.env.COZE_BOT_ID;

@@ -1,7 +1,5 @@
-import dotenv from "dotenv";
+import "./loadEnv.js";
 import mongoose from "mongoose";
-
-dotenv.config();
 
 // 数据库连接选项
 const options: mongoose.ConnectOptions = {

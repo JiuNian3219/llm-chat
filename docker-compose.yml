@@ -1,0 +1,55 @@
+services:
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: llm-chat-client
+    ports:
+      - "${APP_PORT:-80}:80"
+    networks:
+      - llm-chat
+    depends_on:
+      - server
+    restart: unless-stopped
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: llm-chat-server
+    env_file: .env
+    environment:
+      - MONGODB_URL=mongodb://mongo:27017/llm-chat
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - llm-chat-uploads:/app/uploads
+    networks:
+      - llm-chat
+    depends_on:
+      - mongo
+      - redis
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7
+    container_name: llm-chat-mongo
+    volumes:
+      - llm-chat-mongo:/data/db
+    networks:
+      - llm-chat
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: llm-chat-redis
+    networks:
+      - llm-chat
+    restart: unless-stopped
+
+networks:
+  llm-chat:
+    driver: bridge
+
+volumes:
+  llm-chat-uploads:
+  llm-chat-mongo:

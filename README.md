@@ -131,6 +131,45 @@ cd client && npm test
 cd server && npm test
 ```
 
+## Docker 部署
+
+```bash
+# 1. 在项目根目录创建 .env
+cat > .env << EOF
+COZE_API_TOKEN=你的 Coze Token
+COZE_BOT_ID=你的 Bot ID
+CORS_ORIGIN=http://localhost
+APP_PORT=80
+EOF
+# 部署到服务器时：CORS_ORIGIN=http://你的IP（端口 80 时）或 http://你的IP:端口
+
+# 2. 构建并启动
+docker compose up -d --build
+
+# 访问 http://localhost（端口 80 时可直接用 IP 访问，简历仅写 IP 即可）
+```
+
+MongoDB、Redis 由 docker-compose 提供，无需单独安装。**端口可配置**：`APP_PORT` 默认 80，简历只写 IP 时访客输入 `http://IP` 即可。
+
+### GitHub Actions 自动部署
+
+仓库内含 `.github/workflows/deploy.yml`，push 到 `main` 后自动 SSH 到服务器执行 `git pull` + `docker compose up -d --build`。
+
+需在仓库 **Settings → Secrets and variables → Actions** 中配置：
+
+| Secret | 说明 |
+|--------|------|
+| `SSH_HOST` | 服务器 IP 或域名 |
+| `SSH_USER` | SSH 用户名（如 root） |
+| `SSH_PRIVATE_KEY` | SSH 私钥完整内容 |
+| `SSH_PORT` | SSH 端口（可选，缺省 22） |
+| `COZE_API_TOKEN` | Coze API Token（用于写入部署时的 .env） |
+| `COZE_BOT_ID` | Coze Bot ID |
+| `CORS_ORIGIN` | 浏览器访问地址，如 `http://你的IP`（端口 80）或 `http://你的IP:端口`（可选，缺省 `http://localhost`） |
+| `APP_PORT` | 对外暴露端口（可选，缺省 80） |
+
+首次部署前，在服务器执行：`git clone` 本仓库到 `/opt/llm-chat`，再手动执行一次 `docker compose up -d --build` 完成初始化。
+
 ## 目录结构
 
 ```
