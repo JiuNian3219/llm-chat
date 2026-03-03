@@ -28,6 +28,12 @@ export const useChatStore = create<ChatStoreState & ChatStoreActions>((set) => (
   cancelSSE: null,
   /** 是否正在加载历史消息 */
   isLoadingMessages: false,
+  /** 是否还有更多历史消息 */
+  hasMoreMessages: false,
+  /** 是否正在加载更多消息 */
+  isLoadingMoreMessages: false,
+  /** 游标：已加载消息中最旧的消息 ID */
+  oldestMessageId: null,
 
   /** 从服务器获取消息 */
   setFromServer: (messages: ChatMessage[]) => {
@@ -93,8 +99,37 @@ export const useChatStore = create<ChatStoreState & ChatStoreActions>((set) => (
     });
   },
 
+  /** 前置插入一批旧消息，更新分页游标与 hasMore */
+  prependMessages: (messages: ChatMessage[], hasMore: boolean) => {
+    set((state) => {
+      if (messages.length === 0) return { hasMoreMessages: hasMore };
+      const newIds = messages.map((m) => m.id);
+      const newById = Object.fromEntries(messages.map((m) => [m.id, m]));
+      return {
+        messageIds: [...newIds, ...state.messageIds],
+        messagesById: { ...newById, ...state.messagesById },
+        hasMoreMessages: hasMore,
+        oldestMessageId: messages[0].id,
+      };
+    });
+  },
+
+  /** 首次加载后初始化分页元数据 */
+  setMessagePagination: (hasMore: boolean, oldestMessageId: string | null) => {
+    set({ hasMoreMessages: hasMore, oldestMessageId });
+  },
+
+  /** 设置加载更多状态 */
+  setIsLoadingMoreMessages: (v: boolean) => set({ isLoadingMoreMessages: v }),
+
   /** 重置消息 */
-  resetMessages: () => set({ messageIds: [], messagesById: {} }),
+  resetMessages: () => set({
+    messageIds: [],
+    messagesById: {},
+    hasMoreMessages: false,
+    isLoadingMoreMessages: false,
+    oldestMessageId: null,
+  }),
 
   /** 设置会话状态 */
   setStatus: (status: ChatStatus) => set({ status }),

@@ -3,6 +3,7 @@ import {
     cancelChatHandler,
     cancelFileUploadHandler,
     getConversationHandler,
+    getConversationMessagesHandler,
     getConversationsHandler,
     getConversationsWithPaginationHandler,
     getConversationTitleHandler,
@@ -35,6 +36,8 @@ router.get("/conversation/list", getConversationsWithPaginationHandler);
 router.get("/conversation/all", getConversationsHandler);
 
 router.get("/conversation/:id", getConversationHandler);
+
+router.get("/conversation/:id/messages", getConversationMessagesHandler);
 
 router.get("/conversation/:id/title", getConversationTitleHandler);
 

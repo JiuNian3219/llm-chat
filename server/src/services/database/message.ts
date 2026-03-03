@@ -1,4 +1,5 @@
 import type { ContentType } from "@coze/api";
+import mongoose from "mongoose";
 import Message from "../../models/message.js";
 
 /**
@@ -57,6 +58,35 @@ export const getMessagesByConversationId = async (conversationId: string) => {
     .sort({ createdAt: 1 })
     .lean();
   return messages;
+};
+
+/**
+ * 游标分页获取消息（按需加载）
+ * @param conversationId - 会话ID
+ * @param options.limit  - 每页条数（默认 10，最大 50）
+ * @param options.before - 游标：ObjectId 字符串，仅返回该 ID 之前的消息
+ * @returns messages（按时间正序）+ hasMore 标志
+ */
+export const getMessagesPaginated = async (
+  conversationId: string,
+  { limit = 10, before }: { limit?: number; before?: string } = {}
+) => {
+  const query: Record<string, any> = { conversationId };
+  if (before) {
+    // ObjectId 天然携带时间信息，$lt 等价于"更早的消息"
+    query._id = { $lt: new mongoose.Types.ObjectId(before) };
+  }
+
+  // 多取 1 条用于判断是否还有更多
+  const rows = await Message.find(query)
+    .populate("files")
+    .sort({ _id: -1 })
+    .limit(limit + 1)
+    .lean();
+
+  const hasMore = rows.length > limit;
+  // 截取目标条数后翻转为正序（旧 → 新）
+  return { messages: rows.slice(0, limit).reverse(), hasMore };
 };
 
 /**

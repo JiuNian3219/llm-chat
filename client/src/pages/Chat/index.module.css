@@ -46,6 +46,16 @@
   z-index: 20;
 }
 
+.load-more-spinner {
+  padding: 12px 0 4px;
+}
+
+.all-loaded-tip {
+  padding: 12px 0 4px;
+  font-size: 12px;
+  color: #bfbfbf;
+}
+
 @media (max-width: 768px) {
   .chat-container::-webkit-scrollbar {
     display: none;

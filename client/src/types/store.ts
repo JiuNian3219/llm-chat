@@ -24,6 +24,12 @@ export interface ChatStoreState {
   cancelSSE: (() => void) | null;
   /** 是否正在加载历史消息 */
   isLoadingMessages: boolean;
+  /** 是否还有更多历史消息可加载 */
+  hasMoreMessages: boolean;
+  /** 是否正在加载更多消息 */
+  isLoadingMoreMessages: boolean;
+  /** 游标：当前已加载消息中最旧的消息 ID（用于向上翻页） */
+  oldestMessageId: string | null;
 }
 
 export interface ChatStoreActions {
@@ -53,6 +59,12 @@ export interface ChatStoreActions {
   setCancelSSE: (_fn: (() => void) | null) => void;
   /** 设置是否正在加载历史消息 */
   setIsLoadingMessages: (_v: boolean) => void;
+  /** 前置插入一批旧消息，并更新分页游标与 hasMore 标志 */
+  prependMessages: (_messages: ChatMessage[], _hasMore: boolean) => void;
+  /** 初始化消息分页元数据（首次加载后调用） */
+  setMessagePagination: (_hasMore: boolean, _oldestMessageId: string | null) => void;
+  /** 设置是否正在加载更多消息 */
+  setIsLoadingMoreMessages: (_v: boolean) => void;
 }
 
 /**

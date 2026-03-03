@@ -223,10 +223,15 @@ export async function loadConversationMessages(conversationId: string | null) {
   chatStore().setIsLoadingMessages(true);
   try {
     if (!conversationId) return;
-    const response = await server.getConversationDetail(conversationId);
+    const response = await server.getConversationDetail(conversationId, { msgLimit: 10 });
     const { conversation } = response.data || {};
     const serverMessages = conversation?.messages || [];
-    chatStore().setFromServer(formatServerMessages(serverMessages));
+    const formatted = formatServerMessages(serverMessages);
+    chatStore().setFromServer(formatted);
+    chatStore().setMessagePagination(
+      conversation?.hasMoreMessages ?? false,
+      formatted[0]?.id ?? null
+    );
 
     if (conversation?.inProgress) {
       const aiMessage: ChatMessage = {
@@ -400,6 +405,33 @@ export async function cancelCurrentStream() {
 
   // 3. 重置流程状态
   chatStore().setStatus(ChatStatus.Idle);
+}
+
+/**
+ * 向上翻页加载更早的历史消息
+ * 使用 oldestMessageId 作为游标，向服务端请求更旧的一批消息，前置插入 Store。
+ *
+ * @param conversationId - 当前会话 ID
+ */
+export async function loadMoreMessages(conversationId: string) {
+  const { oldestMessageId, isLoadingMoreMessages, hasMoreMessages } = chatStore();
+  if (isLoadingMoreMessages || !hasMoreMessages || !oldestMessageId) return;
+
+  chatStore().setIsLoadingMoreMessages(true);
+  try {
+    const response = await server.getConversationMessages(conversationId, {
+      before: oldestMessageId,
+      limit: 10,
+    });
+    const { messages, hasMore } = response.data || {};
+    const formatted = formatServerMessages(messages || []);
+    chatStore().prependMessages(formatted, hasMore ?? false);
+  } catch (error: any) {
+    console.error("加载更多消息失败:", error);
+    antdMessage.error("加载历史消息失败，请稍后再试");
+  } finally {
+    chatStore().setIsLoadingMoreMessages(false);
+  }
 }
 
 /**

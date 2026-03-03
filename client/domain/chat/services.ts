@@ -227,14 +227,37 @@ function getConversationList(page: number = 1, pageSize: number = 20) {
 
 /**
  * 获取会话详情
- * @param conversationId - 会话ID
+ * @param conversationId  - 会话ID
+ * @param options.msgLimit - 若传入，只返回最新 N 条消息（附带 hasMoreMessages）
  */
-function getConversationDetail(conversationId: string) {
+function getConversationDetail(conversationId: string, options?: { msgLimit?: number }) {
   const { url, method } = coze.conversationDetail;
   return request(url, {
     method,
     params: {
       id: conversationId,
+      ...(options?.msgLimit ? { msgLimit: options.msgLimit } : {}),
+    },
+  });
+}
+
+/**
+ * 按需加载更多历史消息（游标分页）
+ * @param conversationId - 会话ID
+ * @param options.limit  - 每页条数（默认 10）
+ * @param options.before - 游标：最旧消息的 ObjectId，返回更早的消息
+ */
+function getConversationMessages(
+  conversationId: string,
+  { limit = 10, before }: { limit?: number; before?: string } = {}
+) {
+  const { url, method } = coze.conversationMessages;
+  return request(url, {
+    method,
+    params: {
+      id: conversationId,
+      limit,
+      ...(before ? { before } : {}),
     },
   });
 }
@@ -287,6 +310,7 @@ export default {
   getAllConversationList,
   getConversationList,
   getConversationDetail,
+  getConversationMessages,
   getConversationTitle,
   updateConversationTitle,
   deleteConversation,

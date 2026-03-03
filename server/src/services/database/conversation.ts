@@ -1,7 +1,7 @@
 import Conversation from "../../models/conversation.js";
 import Message from "../../models/message.js";
 import { NotFoundError } from "../../utils/error.js";
-import { getMessagesByConversationId } from "./message.js";
+import { getMessagesByConversationId, getMessagesPaginated } from "./message.js";
 
 /**
  * 在数据库中创建一个新的会话
@@ -76,13 +76,15 @@ export const getConversationsWithPagination = async (
 
 /**
  * 获取会话详情
- * @param conversationId - 会话ID
+ * @param conversationId  - 会话ID
  * @param populateMessages - 是否填充消息
+ * @param msgLimit        - 消息分页条数；传入时只返回最新 N 条并附带 hasMoreMessages 标志
  * @returns
  */
 export const getConversation = async (
   conversationId: string,
-  populateMessages: boolean = false
+  populateMessages: boolean = false,
+  msgLimit?: number
 ) => {
   const conversation = await Conversation.findOne({ conversationId }).lean();
   if (!conversation) {
@@ -91,11 +93,12 @@ export const getConversation = async (
   if (!populateMessages) {
     return conversation;
   }
+  if (msgLimit && msgLimit > 0) {
+    const { messages, hasMore } = await getMessagesPaginated(conversationId, { limit: msgLimit });
+    return { ...conversation, messages, hasMoreMessages: hasMore };
+  }
   const messages = await getMessagesByConversationId(conversationId);
-  return {
-    ...conversation,
-    messages: messages,
-  };
+  return { ...conversation, messages, hasMoreMessages: false };
 };
 
 /**

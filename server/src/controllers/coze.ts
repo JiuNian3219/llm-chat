@@ -15,6 +15,7 @@ import {
   getConversationsWithPagination,
   updateConversationTitle,
 } from "../services/database/conversation.js";
+import { getMessagesPaginated } from "../services/database/message.js";
 import { getSnapshot } from "../services/stream/hub.js";
 import {
   CustomError,
@@ -329,6 +330,7 @@ export const getConversationTitleHandler = asyncHandler(
 
 /**
  * 获取会话详情
+ * 支持 ?msgLimit=N 按需分页，仅返回最新 N 条消息 + hasMoreMessages 标志
  * @param req - 请求对象
  * @param res - 响应对象
  */
@@ -338,11 +340,35 @@ export const getConversationHandler = asyncHandler(
     if (!id) {
       throw new Error("会话ID不能为空");
     }
-    const conversation = await getConversation(id, true);
+    const { msgLimit } = req.query;
+    const limit = msgLimit ? parseInt(msgLimit as string, 10) : undefined;
+    const conversation = await getConversation(id, true, limit);
     if (!conversation) {
       throw new NotFoundError("会话不存在");
     }
     success(res, { conversation });
+  }
+);
+
+/**
+ * 按需加载更多历史消息（游标分页）
+ * GET /conversation/:id/messages?limit=10&before=<ObjectId>
+ * @param req - 请求对象
+ * @param res - 响应对象
+ */
+export const getConversationMessagesHandler = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    if (!id) {
+      throw new ValidationError("会话ID不能为空");
+    }
+    const { limit = "10", before } = req.query;
+    const limitNum = Math.min(parseInt(limit as string, 10) || 10, 50);
+    const { messages, hasMore } = await getMessagesPaginated(id, {
+      limit: limitNum,
+      before: before as string | undefined,
+    });
+    success(res, { messages, hasMore });
   }
 );
 

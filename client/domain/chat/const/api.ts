@@ -15,6 +15,7 @@ interface CozeAPI {
   conversationList: Endpoint;
   conversationAll: Endpoint;
   conversationDetail: Endpoint;
+  conversationMessages: Endpoint;
   conversationTitle: Endpoint;
   conversationUpdateTitle: Endpoint;
   conversationDelete: Endpoint;
@@ -30,6 +31,7 @@ const coze: CozeAPI = {
   conversationList: { url: `${COZE_BASE}/conversation/list`, method: "GET" },
   conversationAll: { url: `${COZE_BASE}/conversation/all`, method: "GET" },
   conversationDetail: { url: `${COZE_BASE}/conversation/{id}`, method: "GET" },
+  conversationMessages: { url: `${COZE_BASE}/conversation/{id}/messages`, method: "GET" },
   conversationTitle: {
     url: `${COZE_BASE}/conversation/{id}/title`,
     method: "GET",
