@@ -18,6 +18,7 @@ export const createMessage = async ({
   conversationId,
   role,
   content,
+  reasoning,
   contentType,
   followUps,
   files,
@@ -27,6 +28,7 @@ export const createMessage = async ({
   conversationId: string;
   role: "user" | "assistant";
   content: string;
+  reasoning?: string;
   contentType: ContentType;
   followUps?: string[];
   files?: any[];
@@ -37,6 +39,7 @@ export const createMessage = async ({
     conversationId,
     role,
     content,
+    reasoning: reasoning || "",
     contentType: contentType || "text",
     followUps: followUps,
     files: files,

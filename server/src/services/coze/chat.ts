@@ -35,6 +35,8 @@ interface MessageInfo {
   conversationId: string;
   chatId: string | null;
   fullContent: string;
+  /** 累积的思考链内容，用于落库持久化 */
+  reasoning: string;
   followUps: string[];
 }
 
@@ -127,6 +129,7 @@ export async function streamChat(
     conversationId,
     chatId: null,
     fullContent: "",
+    reasoning: "",
     followUps: [],
   };
 
@@ -171,6 +174,7 @@ export async function streamChat(
           messageInfo.fullContent += part.data.content;
           const reasoningContent = (part.data as any)?.reasoning_content;
           if (reasoningContent) {
+            messageInfo.reasoning += reasoningContent;
             await publishReasoning(messageInfo.conversationId, reasoningContent);
           }
           await appendDelta(
@@ -332,6 +336,7 @@ async function saveAIMessage(messageInfo: MessageInfo) {
     conversationId: messageInfo.conversationId,
     role: "assistant",
     content: messageInfo.fullContent,
+    reasoning: messageInfo.reasoning || undefined,
     contentType: "text",
     chatId: messageInfo.chatId,
     followUps: messageInfo.followUps,

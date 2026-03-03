@@ -9,10 +9,16 @@ interface UseChatScrollOptions {
 
 /**
  * 聊天窗口自动滚动 Hook
- * @param options - 配置项
- * @param options.boxRef - 需要绑定到滚动容器的 ref
- * @param options.isGenerating - 是否正在生成（用于判断是否需要自动滚动）
- * @param options.threshold - 距离底部多少像素内自动滚动
+ *
+ * 追底策略：
+ * - 内容变化时若"接近底部"（距底 ≤ threshold）→ 自动追底
+ * - 用户向上滚动时暂停追底（isWheelingUp 窗口期内）
+ * - 用户向下滚动时立即恢复追底，无需等待靠近底部（isWheelingDown 窗口期内）
+ *   适用于小容器（如 ReasoningBlock）内容持续增长导致永远无法"靠近底部"的场景
+ *
+ * @param options.boxRef      - 滚动容器 ref
+ * @param options.isGenerating - 是否正在生成内容
+ * @param options.threshold   - 距底部多少像素内视为"接近底部"（默认 200）
  */
 export const useChatScroll = ({
   boxRef,
@@ -53,9 +59,11 @@ export const useChatScroll = ({
     [boxRef, checkIsAwayFromBottom]
   );
 
-  // 鼠标滚轮向上滚动状态
+  // 向上滚动：暂停追底；向下滚动：立即恢复追底
   const [isWheelingUp, setIsWheelingUp] = useState(false);
-  const wheelTimer = useRef<any>(null);
+  const [isWheelingDown, setIsWheelingDown] = useState(false);
+  const wheelUpTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wheelDownTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const scrollElement = boxRef.current;
@@ -63,11 +71,19 @@ export const useChatScroll = ({
 
     const handleWheel = (e: WheelEvent) => {
       if (e.deltaY < 0) {
+        // 向上滚动：暂停追底，同时清除"向下"状态
         setIsWheelingUp(true);
-        if (wheelTimer.current) clearTimeout(wheelTimer.current);
-        wheelTimer.current = setTimeout(() => {
-          setIsWheelingUp(false);
-        }, 300);
+        setIsWheelingDown(false);
+        if (wheelDownTimer.current) clearTimeout(wheelDownTimer.current);
+        if (wheelUpTimer.current) clearTimeout(wheelUpTimer.current);
+        wheelUpTimer.current = setTimeout(() => setIsWheelingUp(false), 300);
+      } else if (e.deltaY > 0) {
+        // 向下滚动：立即清除"向上"状态，进入"向下"窗口期
+        setIsWheelingUp(false);
+        setIsWheelingDown(true);
+        if (wheelUpTimer.current) clearTimeout(wheelUpTimer.current);
+        if (wheelDownTimer.current) clearTimeout(wheelDownTimer.current);
+        wheelDownTimer.current = setTimeout(() => setIsWheelingDown(false), 300);
       }
     };
 
@@ -75,7 +91,8 @@ export const useChatScroll = ({
 
     return () => {
       scrollElement.removeEventListener("wheel", handleWheel);
-      if (wheelTimer.current) clearTimeout(wheelTimer.current);
+      if (wheelUpTimer.current) clearTimeout(wheelUpTimer.current);
+      if (wheelDownTimer.current) clearTimeout(wheelDownTimer.current);
     };
   }, [boxRef]);
 
@@ -84,8 +101,11 @@ export const useChatScroll = ({
     if (!scrollElement) return;
 
     const observer = new MutationObserver(() => {
-      // 如果接近底部且正在生成且鼠标滚轮未滚动，则滚动到底部
-      if (!checkIsAwayFromBottom() && isGenerating && !isWheelingUp) {
+      // 追底条件（满足其一即可）：
+      //   1. 接近底部（标准场景）
+      //   2. 用户正在向下滚动（小容器流式增长场景，距底可能超过 threshold 但用户意图明确）
+      const nearBottom = !checkIsAwayFromBottom();
+      if (isGenerating && !isWheelingUp && (nearBottom || isWheelingDown)) {
         scrollToBottom();
       }
       checkIsAwayFromBottom();
@@ -105,6 +125,7 @@ export const useChatScroll = ({
     scrollToBottom,
     checkIsAwayFromBottom,
     isWheelingUp,
+    isWheelingDown,
   ]);
 
   useEffect(() => {

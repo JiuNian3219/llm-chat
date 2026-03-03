@@ -86,6 +86,8 @@ export interface ServerMessage {
   }>;
   /** AI 跟进建议 */
   followUps?: string[];
+  /** 思考链内容（reasoning/chain-of-thought），仅 assistant 消息存在 */
+  reasoning?: string;
   /** 消息状态 */
   status?: "normal" | "error" | "canceled"; // 服务端原始字段，不做 enum 化（仅内部映射用）
 }

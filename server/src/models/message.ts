@@ -20,6 +20,10 @@ const messageSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    reasoning: {
+      type: String,
+      default: "",
+    },
     contentType: {
       type: String,
       enum: ["text", "object_string"],

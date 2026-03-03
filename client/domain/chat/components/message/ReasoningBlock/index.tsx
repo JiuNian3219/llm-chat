@@ -21,7 +21,8 @@ interface ReasoningBlockProps {
  * @returns
  */
 const ReasoningBlock = ({ reasoning, isStreaming }: ReasoningBlockProps) => {
-  const [isExpanded, setIsExpanded] = useState(true);
+  // 流式阶段默认展开；历史加载时已完成思考（isStreaming=false），默认折叠
+  const [isExpanded, setIsExpanded] = useState(isStreaming);
   const prevIsStreaming = useRef(isStreaming);
   const contentRef = useRef<HTMLDivElement>(null);
 

@@ -129,6 +129,7 @@ export function formatServerMessages(messages: ServerMessage[]): ChatMessage[] {
       chatId: message.chatId,
       role,
       content,
+      reasoning: message.reasoning || undefined,
       followUps: followUps || [],
       status: msgStatus,
       files: [] as ChatFile[],
