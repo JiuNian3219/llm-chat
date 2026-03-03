@@ -160,34 +160,41 @@ const ConversationList = ({ style, className }: ConversationListProps) => {
                 {title || ""}
               </span>
             )}
-            <Dropdown
-              trigger={["click"]}
-              open={menuOpenId === conversationId}
-              onOpenChange={(open) =>
-                setMenuOpenId(open ? conversationId : null)
-              }
-              menu={{
-                items: [
-                  { key: "rename", label: "重命名" },
-                  { key: "delete", label: "删除" },
-                ],
-                onClick: (info) => {
-                  info.domEvent?.stopPropagation();
-                  if (info.key === "rename") {
-                    beginRename(conversationId);
-                  } else if (info.key === "delete") {
-                    confirmDelete(conversationId);
-                  }
-                },
+            <span
+              className={styles["conversation-item-control-wrap"]}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
               }}
             >
-              <IconButton
-                className={styles["conversation-item-control"]}
-                type="text"
-                icon={<MoreOutlined />}
-                onClick={(e: MouseEvent) => e.stopPropagation()}
-              />
-            </Dropdown>
+              <Dropdown
+                trigger={["click"]}
+                open={menuOpenId === conversationId}
+                onOpenChange={(open) =>
+                  setMenuOpenId(open ? conversationId : null)
+                }
+                menu={{
+                  items: [
+                    { key: "rename", label: "重命名" },
+                    { key: "delete", label: "删除" },
+                  ],
+                  onClick: (info) => {
+                    info.domEvent?.stopPropagation();
+                    if (info.key === "rename") {
+                      beginRename(conversationId);
+                    } else if (info.key === "delete") {
+                      confirmDelete(conversationId);
+                    }
+                  },
+                }}
+              >
+                <IconButton
+                  className={styles["conversation-item-control"]}
+                  type="text"
+                  icon={<MoreOutlined />}
+                />
+              </Dropdown>
+            </span>
           </Link>
         ))
       ) : (

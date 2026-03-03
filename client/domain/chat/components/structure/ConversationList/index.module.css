@@ -56,6 +56,10 @@
   color: #999;
 }
 
+.conversation-item-control-wrap {
+  flex-shrink: 0;
+}
+
 .conversation-item-control {
   display: none;
 }
