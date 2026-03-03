@@ -1,6 +1,6 @@
 # LLM Chat
 
-基于 Coze API 的全栈 AI 对话应用，实现了 SSE 流式回复、断点续播、多模态文件上传等核心功能。
+基于 Coze API 的全栈 AI 对话应用，实现了 SSE 流式回复、思考链展示、断点续播、多模态文件上传等核心功能。
 
 ## 技术栈
 
@@ -53,14 +53,14 @@ Service 调用 Coze API 流式生成，每个 delta 通过 `publishEvent` 写入
 
 ### 断点续播
 
-切换会话或刷新页面时，SSE 断开但后端继续生成并落库。`appendDelta` 同时用 `redis.append` 累积快照：
+切换会话或刷新页面时，SSE 断开但后端继续生成并落库。`appendDelta` / `publishReasoning` 同时用 Redis 累积快照（正文 + 思考链）：
 
 ```
 重新进入会话
   → 检测到 conversation.inProgress = true
-  → 订阅 SSE，后端先下发 snapshot（全量已生成内容）
-  → 前端 onSnapshot 全量覆盖，再接续后续增量
-  → 对用户：感知不到断线过
+  → 订阅 SSE，后端先下发 snapshot（content + reasoning_content）
+  → 前端 onSnapshot / onReasoningSnapshot 全量覆盖，再接续后续增量
+  → 对用户：思考链与正文均可无缝续播
 ```
 
 ### 并发控制
@@ -209,7 +209,8 @@ server/src/
 | POST | `/coze/chat/subscribe` | 断线续播 |
 | POST | `/coze/upload` | 上传文件 |
 | GET | `/coze/conversation/list` | 分页会话列表 |
-| GET | `/coze/conversation/:id` | 会话详情 |
+| GET | `/coze/conversation/:id` | 会话详情（msgLimit 控制首次条数） |
+| GET | `/coze/conversation/:id/messages` | 游标分页拉取更早消息（limit、before） |
 | GET | `/coze/conversation/:id/title` | 会话标题 |
 
-SSE 事件类型：`start` / `snapshot` / `message` / `completed` / `follow_up` / `done` / `error`
+SSE 事件类型：`start` / `snapshot`（含 content、reasoning_content）/ `message` / `reasoning` / `completed` / `follow_up` / `done` / `error`
