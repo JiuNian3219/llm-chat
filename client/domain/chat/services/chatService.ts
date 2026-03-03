@@ -1,3 +1,4 @@
+import { randomUUID } from "@/base/utils";
 import server from "@/domain/chat/services";
 import { useChatStore } from "@/domain/chat/stores/chatStore";
 import { useConversation } from "@/domain/chat/stores/conversationStore";
@@ -235,7 +236,7 @@ export async function loadConversationMessages(conversationId: string | null) {
 
     if (conversation?.inProgress) {
       const aiMessage: ChatMessage = {
-        id: crypto.randomUUID(),
+        id: randomUUID(),
         role: "assistant",
         content: "",
         followUps: [],
@@ -310,7 +311,7 @@ export async function sendStreamMessage({
   const files = attachments || fileStore().files || [];
 
   const userMessage: ChatMessage = {
-    id: crypto.randomUUID(),
+    id: randomUUID(),
     role: "user",
     content: trimmedMessage,
     conversationId,
@@ -322,7 +323,7 @@ export async function sendStreamMessage({
   chatStore().appendMessage(userMessage);
 
   const aiMessage: ChatMessage = {
-    id: crypto.randomUUID(),
+    id: randomUUID(),
     role: "assistant",
     content: "",
     followUps: [],

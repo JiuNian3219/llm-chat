@@ -1,4 +1,5 @@
 import request from "@/base/utils/request";
+import { randomUUID } from "@/base/utils";
 import api from "@/domain/chat/const/api";
 import { UPLOAD_LIMITS } from "@/domain/chat/const";
 import { useFileStore } from "@/domain/chat/stores/fileStore";
@@ -106,7 +107,7 @@ export function uploadFiles(rawFiles: File[]): void {
   if (valid.length === 0) return;
 
   const newChatFiles: ChatFile[] = valid.map((file) => ({
-    id: crypto.randomUUID(),
+    id: randomUUID(),
     name: file.name,
     size: file.size,
     type: isImageType(file.type) ? "image" : "file",
