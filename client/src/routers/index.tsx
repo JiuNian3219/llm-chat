@@ -1,5 +1,4 @@
 /* eslint-disable react-refresh/only-export-components */
-import { chatDetailLoader } from "@/src/routers/loaders/chatDetail";
 import { lazy, Suspense } from "react";
 import { createBrowserRouter, Outlet } from "react-router-dom";
 import Root from "../pages/Root";
@@ -44,7 +43,6 @@ const router = createBrowserRouter(
             {
               path: ":conversationId",
               Component: LazyChat,
-              loader: chatDetailLoader,
             },
           ],
         },

@@ -13,7 +13,7 @@ import { ChatStatus } from "@/src/types/store";
 import { ArrowDownOutlined } from "@ant-design/icons";
 import { Flex, Spin, theme } from "antd";
 import { useCallback, useEffect, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import styles from "./index.module.css";
 
 const Chat = () => {
@@ -29,6 +29,7 @@ const Chat = () => {
   const setCurrentConversationId = useConversation((s) => s.setCurrentConversationId);
   const fetchCurrentTitle = useConversation((s) => s.fetchCurrentTitle);
   const { conversationId } = useParams();
+  const navigate = useNavigate();
 
   const boxRef = useRef<HTMLElement | null>(null);
   /** 加载更多前记录的 scrollHeight，用于加载完成后恢复滚动位置 */
@@ -90,7 +91,11 @@ const Chat = () => {
     // loadConversationMessages 内部会检查 sseConversationId：
     // 若 SSE 已在为该会话生成（从首页跳转），直接返回保留动画；
     // 否则（刷新/切换会话）正常 reset + 拉取后端数据。
-    loadConversationMessages(conversationId);
+    loadConversationMessages(conversationId).catch((err: any) => {
+      if (/会话不存在/.test(err?.message || "")) {
+        navigate("/", { replace: true });
+      }
+    });
   }, [conversationId]);
 
   return (
