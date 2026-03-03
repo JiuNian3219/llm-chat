@@ -4,7 +4,6 @@ import AIInputPanel from "@/domain/chat/components/input/AIInputPanel";
 import ChatMessages from "@/domain/chat/components/structure/ChatMessages";
 import { useChatScroll } from "@/domain/chat/hooks/useChatScroll";
 import {
-  clearSSE,
   loadConversationMessages,
   loadMoreMessages,
 } from "@/domain/chat/services/chatService";
@@ -14,7 +13,7 @@ import { ChatStatus } from "@/src/types/store";
 import { ArrowDownOutlined } from "@ant-design/icons";
 import { Flex, Spin, theme } from "antd";
 import { useCallback, useEffect, useRef } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import styles from "./index.module.css";
 
 const Chat = () => {
@@ -30,8 +29,6 @@ const Chat = () => {
   const setCurrentConversationId = useConversation((s) => s.setCurrentConversationId);
   const fetchCurrentTitle = useConversation((s) => s.fetchCurrentTitle);
   const { conversationId } = useParams();
-  const location = useLocation();
-  const navigate = useNavigate();
 
   const boxRef = useRef<HTMLElement | null>(null);
   /** 加载更多前记录的 scrollHeight，用于加载完成后恢复滚动位置 */
@@ -88,19 +85,12 @@ const Chat = () => {
 
   useEffect(() => {
     if (!conversationId) return;
-    const skipLoad = location.state?.skipLoad === true;
-    if (skipLoad) {
-      // 消费一次后立即清除，防止刷新时 session history 中残留的 state 导致跳过加载
-      navigate(location.pathname, { replace: true, state: {} });
-    }
-    if (!skipLoad) {
-      clearSSE();
-    }
     setCurrentConversationId(conversationId);
     fetchCurrentTitle(conversationId);
-    if (!skipLoad) {
-      loadConversationMessages(conversationId);
-    }
+    // loadConversationMessages 内部会检查 sseConversationId：
+    // 若 SSE 已在为该会话生成（从首页跳转），直接返回保留动画；
+    // 否则（刷新/切换会话）正常 reset + 拉取后端数据。
+    loadConversationMessages(conversationId);
   }, [conversationId]);
 
   return (
@@ -126,11 +116,7 @@ const Chat = () => {
               <Spin size="small" />
             </Flex>
           )}
-          {!hasMoreMessages && messageCount > 0 && !isLoadingMoreMessages && (
-            <Flex justify="center" className={styles["all-loaded-tip"]}>
-              <span>已加载全部消息</span>
-            </Flex>
-          )}
+
           <ChatMessages className={styles.messages} />
         </>
       )}

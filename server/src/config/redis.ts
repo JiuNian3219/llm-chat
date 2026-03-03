@@ -52,3 +52,12 @@ export function statusKey(conversationId: string) {
 export function chatIdKey(conversationId: string) {
   return `chat:last_chat_id:${conversationId}`;
 }
+
+/**
+ * 会话思考链内容键
+ * @param conversationId 会话ID
+ * @returns 会话思考链内容键
+ */
+export function reasoningKey(conversationId: string) {
+  return `chat:reasoning:${conversationId}`;
+}

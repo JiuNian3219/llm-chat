@@ -29,6 +29,7 @@ function createHandlers(messageId: string): PlayEngineHandlers {
     onContentDelta: (delta) => chatStore().appendContent(messageId, delta),
     onReasoningDelta: (delta) => chatStore().appendReasoning(messageId, delta),
     onSnapshot: (content) => chatStore().setContent(messageId, content),
+    onReasoningSnapshot: (reasoning) => chatStore().setReasoning(messageId, reasoning),
     onMessageStatus: (status) =>
       chatStore().setMessageStatus(messageId, status),
     getMessageStatus: () =>
@@ -50,6 +51,17 @@ export function clearSSE() {
   chatStore().setCancelSSE(null);
   chatStore().setCurrentChatId(null);
   chatStore().setStatus(ChatStatus.Idle);
+  chatStore().setSSEConversationId(null);
+}
+
+/**
+ * 切换会话前的预清理：立即停止 SSE、清空消息、置为加载中。
+ * 在 ConversationList 点击时调用，保证主区域立即显示加载态，不残留旧消息。
+ */
+export function prepareConversationSwitch() {
+  clearSSE();
+  chatStore().resetMessages();
+  chatStore().setIsLoadingMessages(true);
 }
 
 /**
@@ -149,6 +161,8 @@ function buildSSECallbacks(
       if (!sseConversationId) {
         sseConversationId = data.conversationId;
       }
+      // 将 SSE 归属的会话 ID 写入 store，供 loadConversationMessages 判断是否跳过重置
+      chatStore().setSSEConversationId(sseConversationId);
       // 断线重连时后端会携带 chatId，立即写入避免按钮短暂转圈
       if (data.chatId) {
         chatStore().setCurrentChatId(data.chatId);
@@ -259,14 +273,20 @@ export function applyConversationToStore(
 
 /**
  * 加载某会话的历史消息；若后端标记 inProgress 则订阅 SSE 续播
+ *
+ * 当 SSE 已在为该会话生成内容时（从首页首次跳转场景），跳过重置直接返回，
+ * 保留 store 中的动画状态，避免闪烁。
+ *
  * @param conversationId - 会话 ID
  */
 export async function loadConversationMessages(conversationId: string | null) {
+  if (!conversationId) return;
+  // SSE 已在为该会话服务，无需重置 store（从首页跳转时保留动画）
+  if (chatStore().sseConversationId === conversationId) return;
   clearSSE();
   chatStore().resetMessages();
   chatStore().setIsLoadingMessages(true);
   try {
-    if (!conversationId) return;
     const response = await server.getConversationDetail(conversationId, {
       msgLimit: 10,
     });

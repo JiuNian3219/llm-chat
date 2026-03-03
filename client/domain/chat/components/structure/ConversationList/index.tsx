@@ -1,5 +1,5 @@
 import IconButton from "@/base/components/IconButton";
-import { resetChatFlow } from "@/domain/chat/services/chatService";
+import { prepareConversationSwitch, resetChatFlow } from "@/domain/chat/services/chatService";
 import { useConversation } from "@/domain/chat/stores/conversationStore";
 import { MoreOutlined } from "@ant-design/icons";
 import {
@@ -47,7 +47,12 @@ const ConversationList = ({ style, className }: ConversationListProps) => {
   const handleLinkClick = (e: MouseEvent<HTMLAnchorElement>, id: string) => {
     if (id === currentConversationId) {
       e.preventDefault();
+      return;
     }
+    // 立即更新选中态、清空标题和消息区，不等 Chat useEffect，避免残留旧内容
+    useConversation.getState().setCurrentConversationId(id);
+    useConversation.getState().setCurrentTitle("");
+    prepareConversationSwitch();
   };
 
   const beginRename = (id: string) => {

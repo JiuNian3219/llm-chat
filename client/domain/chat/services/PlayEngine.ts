@@ -10,8 +10,10 @@ export interface PlayEngineHandlers {
   onContentDelta: (delta: string) => void;
   /** 追加思考链增量 */
   onReasoningDelta: (delta: string) => void;
-  /** 断线重连后全量覆盖内容 */
+  /** 断线重连后全量覆盖文本内容 */
   onSnapshot: (content: string) => void;
+  /** 断线重连后全量覆盖思考链内容 */
+  onReasoningSnapshot: (reasoning: string) => void;
   /** 更新消息状态 */
   onMessageStatus: (status: MessageStatus) => void;
   /** 读取当前消息状态（用于 Pending→Streaming 迁移判断） */
@@ -78,6 +80,9 @@ export class PlayEngine {
         case "snapshot":
           // 断线重连后全量覆盖已累积内容，直接进入 streaming 状态
           this.handlers.onSnapshot(event.content || "");
+          if (event.reasoning_content) {
+            this.handlers.onReasoningSnapshot(event.reasoning_content);
+          }
           this.handlers.onMessageStatus(MessageStatus.Streaming);
           break;
 

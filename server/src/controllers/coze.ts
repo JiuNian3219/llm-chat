@@ -130,8 +130,12 @@ export const subscribeChatHandler = asyncHandler(
     const snapshot = await getSnapshot(conversationId);
     // chatId 随 start 事件下发，前端收到后立即设置 currentChatId，避免按钮短暂转圈
     sendSSEMessage(res, { type: "start", conversationId, chatId: snapshot.chatId });
-    if (snapshot.content) {
-      sendSSEMessage(res, { type: "snapshot", content: snapshot.content });
+    if (snapshot.content || snapshot.reasoning) {
+      sendSSEMessage(res, {
+        type: "snapshot",
+        content: snapshot.content,
+        reasoning_content: snapshot.reasoning || undefined,
+      });
     }
     if (snapshot.status === "completed") {
       sendSSEMessage(res, {

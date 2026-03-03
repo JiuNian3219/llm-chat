@@ -26,6 +26,8 @@ export const useChatStore = create<ChatStoreState & ChatStoreActions>((set) => (
   currentChatId: null,
   /** 当前活跃 SSE 连接的取消函数（非序列化状态，仅运行时使用） */
   cancelSSE: null,
+  /** SSE 当前正在为哪个会话生成内容 */
+  sseConversationId: null,
   /** 是否正在加载历史消息 */
   isLoadingMessages: false,
   /** 是否还有更多历史消息 */
@@ -87,6 +89,11 @@ export const useChatStore = create<ChatStoreState & ChatStoreActions>((set) => (
     set((state) => patchMessage(state, id, { content }));
   },
 
+  /** 设置思考链内容（断线重连 snapshot 恢复用） */
+  setReasoning: (id: string, reasoning: string) => {
+    set((state) => patchMessage(state, id, { reasoning }));
+  },
+
   /** 添加跟进建议 */
   addFollowUp: (id: string, item: string) => {
     set((state) => {
@@ -137,6 +144,8 @@ export const useChatStore = create<ChatStoreState & ChatStoreActions>((set) => (
   setCurrentChatId: (id: string | null) => set({ currentChatId: id }),
   /** 设置当前活跃 SSE 连接的取消函数 */
   setCancelSSE: (fn) => set({ cancelSSE: fn }),
+  /** 设置 SSE 当前正在服务的会话 ID */
+  setSSEConversationId: (id) => set({ sseConversationId: id }),
   /** 设置是否正在加载历史消息 */
   setIsLoadingMessages: (v: boolean) => set({ isLoadingMessages: v }),
 }));

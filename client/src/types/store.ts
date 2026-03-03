@@ -22,6 +22,8 @@ export interface ChatStoreState {
   currentChatId: string | null;
   /** 当前活跃 SSE 连接的取消函数（非序列化状态，仅运行时使用） */
   cancelSSE: (() => void) | null;
+  /** SSE 当前正在为哪个会话生成内容；用于 loadConversationMessages 判断是否跳过重置 */
+  sseConversationId: string | null;
   /** 是否正在加载历史消息 */
   isLoadingMessages: boolean;
   /** 是否还有更多历史消息可加载 */
@@ -47,6 +49,8 @@ export interface ChatStoreActions {
   setChatId: (_id: string, _chatId: string) => void;
   /** 设置消息内容 */
   setContent: (_id: string, _content: string) => void;
+  /** 设置思考链内容（断线重连 snapshot 恢复用） */
+  setReasoning: (_id: string, _reasoning: string) => void;
   /** 添加跟进建议 */
   addFollowUp: (_id: string, _item: string) => void;
   /** 重置消息 */
@@ -57,6 +61,8 @@ export interface ChatStoreActions {
   setCurrentChatId: (_id: string | null) => void;
   /** 设置当前活跃 SSE 连接的取消函数 */
   setCancelSSE: (_fn: (() => void) | null) => void;
+  /** 设置 SSE 当前正在服务的会话 ID */
+  setSSEConversationId: (_id: string | null) => void;
   /** 设置是否正在加载历史消息 */
   setIsLoadingMessages: (_v: boolean) => void;
   /** 前置插入一批旧消息，并更新分页游标与 hasMore 标志 */

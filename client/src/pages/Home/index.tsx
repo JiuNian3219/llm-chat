@@ -39,17 +39,14 @@ const Home = () => {
   }, []);
 
   /**
-   * 首次发送消息后跳转到聊天页
-   * 携带 skipLoad 避免 Chat 页重新拉取消息覆盖正在生成的内容
-   * @param data - 消息数据
+   * SSE onStart 拿到 conversationId 后立即跳转；
+   * loadConversationMessages 通过 sseConversationId 跳过 reset，store 消息保留，动画在 Chat 页继续。
+   * 
+   * @param data - SSEStartData
+   * @returns
    */
   const handleStart = (data: SSEStartData) => {
-    setTimeout(() => {
-      navigate("/chat/" + data.conversationId, {
-        replace: true,
-        state: { skipLoad: true },
-      });
-    }, 1000);
+    navigate("/chat/" + data.conversationId, { replace: true });
   };
 
   return (

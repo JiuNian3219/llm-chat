@@ -2,6 +2,7 @@ import {
   channelForConversation,
   chatIdKey,
   contentKey,
+  reasoningKey,
   redis,
   redisPub,
   statusKey,
@@ -65,13 +66,15 @@ export async function setStatus(
  * @returns 会话快照
  */
 export async function getSnapshot(conversationId: string) {
-  const [content, status, lastChatId] = await redis.mget(
+  const [content, status, lastChatId, reasoning] = await redis.mget(
     contentKey(conversationId),
     statusKey(conversationId),
-    chatIdKey(conversationId)
+    chatIdKey(conversationId),
+    reasoningKey(conversationId)
   );
   return {
     content: content || "",
+    reasoning: reasoning || "",
     status: (status as StreamEventStatus) || null,
     chatId: lastChatId || null,
   };
@@ -115,7 +118,7 @@ export async function appendDelta(
  * @param conversationId 会话ID
  */
 export async function publishStart(conversationId: string) {
-  await redis.del(contentKey(conversationId));
+  await redis.del(contentKey(conversationId), reasoningKey(conversationId));
   await setStatus(conversationId, "in_progress");
   await publishEvent({ type: "start", conversationId });
 }
@@ -130,6 +133,10 @@ export async function publishReasoning(
   conversationId: string,
   content: string
 ) {
+  if (content) {
+    await redis.append(reasoningKey(conversationId), content);
+    await redis.expire(reasoningKey(conversationId), DEFAULT_TTL_SECONDS);
+  }
   await publishEvent({ type: "reasoning", content, conversationId });
 }
 
