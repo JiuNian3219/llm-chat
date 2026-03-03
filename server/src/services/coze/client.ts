@@ -10,6 +10,11 @@ export function getBotId(): string {
   return id;
 }
 
+/** 返回专用于生成会话标题的 Bot ID，未配置时回退到主 Bot */
+export function getTitleBotId(): string {
+  return process.env.COZE_TITLE_BOT_ID || getBotId();
+}
+
 export const client = new CozeAPI({
   baseURL: COZE_CN_BASE_URL,
   token: () => {

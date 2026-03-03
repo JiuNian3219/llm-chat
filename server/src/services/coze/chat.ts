@@ -22,7 +22,7 @@ import {
   publishStart,
 } from "../stream/hub.js";
 import { INFORMATION_REFINER_PROMPT } from "../utils/constants.js";
-import { client, getBotId } from "./client.js";
+import { client, getBotId, getTitleBotId } from "./client.js";
 import { getSnapshot } from "../stream/hub.js";
 
 // 取消中的聊天记录，键为 `${conversationId}:${chatId}`
@@ -45,14 +45,16 @@ interface MessageInfo {
  * @param content - 用户输入的内容
  * @param contentType - 内容类型, "text", "object_string"
  * @param conversationId - 会话ID
+ * @param botId - 可选，指定 Bot ID；默认使用主 Bot
  */
 export async function nonStreamChat(
   content: string,
   contentType: ContentType,
-  conversationId?: string
+  conversationId?: string,
+  botId?: string
 ) {
   const chatResponse = await client.chat.createAndPoll({
-    bot_id: getBotId(),
+    bot_id: botId ?? getBotId(),
     conversation_id: conversationId,
     auto_save_history: true,
     additional_messages: [
@@ -265,14 +267,15 @@ export async function cancelChat(chatId: string, conversationId: string) {
 
 /**
  * 生成会话标题
+ * 使用独立的标题 Bot（COZE_TITLE_BOT_ID）以避免污染主对话上下文
  * @param content - 用户输入的内容
  * @returns
  */
 async function generateConversationTitle(content: string) {
   const query = INFORMATION_REFINER_PROMPT + content;
-  const messages = (await nonStreamChat(query, "text")).filter(
-    (message) => message.type === "answer"
-  );
+  const messages = (
+    await nonStreamChat(query, "text", undefined, getTitleBotId())
+  ).filter((message) => message.type === "answer");
   return messages.length > 0 ? messages[0].content.trim() : "新会话";
 }
 

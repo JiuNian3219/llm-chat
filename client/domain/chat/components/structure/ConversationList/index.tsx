@@ -76,7 +76,7 @@ const ConversationList = ({ style, className }: ConversationListProps) => {
     const conv = useConversation
       .getState()
       .conversations.find((c) => c.conversationId === id);
-    const convTitle = (conv?.title || "新会话").trim();
+    const convTitle = (conv?.title || "").trim();
     Modal.confirm({
       title: "确认删除该会话？",
       content: `确定删除“${convTitle}”？删除后不可恢复。`,
@@ -122,7 +122,7 @@ const ConversationList = ({ style, className }: ConversationListProps) => {
   const renderList = () => (
     <>
       {conversations.length > 0 ? (
-        conversations.map(({ conversationId, title }) => (
+        conversations.map(({ conversationId, title, titleReady }) => (
           <div
             key={conversationId}
             className={`${styles["conversation-item"]} ${currentConversationId === conversationId ? styles["selected"] : ""}`}
@@ -139,12 +139,18 @@ const ConversationList = ({ style, className }: ConversationListProps) => {
                 onBlur={() => commitRename(conversationId, editingTitle)}
                 onPressEnter={() => commitRename(conversationId, editingTitle)}
               />
+            ) : titleReady === false ? (
+              <Skeleton.Input
+                active
+                size="small"
+                className={styles["conversation-item-title"]}
+              />
             ) : (
               <span
                 title={title}
                 className={styles["conversation-item-title"]}
               >
-                {title || "新会话"}
+                {title || ""}
               </span>
             )}
             <Dropdown

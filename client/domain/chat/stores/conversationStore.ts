@@ -13,7 +13,7 @@ export const useConversation = create<ConversationState & ConversationActions>(
     /** 当前选中会话 ID */
     currentConversationId: null,
     /** 当前会话标题 */
-    currentTitle: "新对话",
+    currentTitle: "",
     /** 是否正在加载会话列表 */
     isLoadingList: false,
     /** 是否正在加载会话标题 */
@@ -41,21 +41,24 @@ export const useConversation = create<ConversationState & ConversationActions>(
     /** 从服务器获取当前会话标题 */
     fetchCurrentTitle: async (conversationId) => {
       if (!conversationId) {
-        set({ currentTitle: "" });
+        set({ currentTitle: "", isLoadingTitle: false });
         return;
       }
       try {
         set({ isLoadingTitle: true });
         const { data } = await server.getConversationTitle(conversationId);
-        set({ currentTitle: data.title || "新对话" });
+        if (data?.titleReady) {
+          // 标题已就绪，直接展示并关闭加载态
+          set({ currentTitle: data.title || "新对话", isLoadingTitle: false });
+        }
+        // titleReady=false 时保持 isLoadingTitle=true，由 pollConversationTitle
+        // 在标题就绪后调用 updateConversationTitle 统一关闭加载态
       } catch (error) {
         console.error("获取会话标题失败:", error);
-        set({ currentTitle: "新对话" });
-      } finally {
-        set({ isLoadingTitle: false });
+        set({ currentTitle: "新对话", isLoadingTitle: false });
       }
     },
-    /** 添加新会话到列表 */
+    /** 添加新会话到列表，并立即选中、开启标题加载态 */
     addNewConversation: (conversationId, title = "新对话") => {
       set((state) => {
         const exists = state.conversations.some(
@@ -64,25 +67,32 @@ export const useConversation = create<ConversationState & ConversationActions>(
         if (exists) return state;
         return {
           conversations: [
-            { conversationId, title, updatedAt: new Date() },
+            { conversationId, title, updatedAt: new Date(), titleReady: false },
             ...state.conversations,
           ],
+          // 立即选中，侧边栏高亮无需等待路由 useEffect
+          currentConversationId: conversationId,
+          // 清空标题并开启骨架屏，等待 pollConversationTitle 就绪后关闭
+          currentTitle: "",
+          isLoadingTitle: true,
         };
       });
     },
-    /** 更新会话标题 */
+    /** 更新会话标题，并在更新当前会话时关闭标题加载态 */
     updateConversationTitle: (conversationId, newTitle) => {
-      set((state) => ({
-        conversations: state.conversations.map((conv) =>
-          conv.conversationId === conversationId
-            ? { ...conv, title: newTitle }
-            : conv
-        ),
-        currentTitle:
-          conversationId === state.currentConversationId
-            ? newTitle
-            : state.currentTitle,
-      }));
+      set((state) => {
+        const isCurrent = conversationId === state.currentConversationId;
+        return {
+          conversations: state.conversations.map((conv) =>
+            conv.conversationId === conversationId
+              ? { ...conv, title: newTitle, titleReady: true }
+              : conv
+          ),
+          currentTitle: isCurrent ? newTitle : state.currentTitle,
+          // 标题就绪时关闭顶部骨架屏
+          isLoadingTitle: isCurrent ? false : state.isLoadingTitle,
+        };
+      });
     },
     /** 重命名会话 */
     renameConversation: async (conversationId, newTitle) => {

@@ -77,6 +77,8 @@ export interface ConversationState {
     title: string;
     updatedAt: Date | string;
     inProgress?: boolean;
+    /** 标题是否已由 AI 生成就绪；false 表示仍在生成中，侧边栏应显示骨架屏 */
+    titleReady?: boolean;
   }>;
   /** 当前选中会话 ID */
   currentConversationId: string | null;

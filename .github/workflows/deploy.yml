@@ -52,6 +52,7 @@ jobs:
         env:
           COZE_API_TOKEN: ${{ secrets.COZE_API_TOKEN }}
           COZE_BOT_ID: ${{ secrets.COZE_BOT_ID }}
+          COZE_TITLE_BOT_ID: ${{ secrets.COZE_TITLE_BOT_ID }}
           CORS_ORIGIN: ${{ secrets.CORS_ORIGIN }}
           APP_PORT: ${{ secrets.APP_PORT }}
           IMAGE_CLIENT: ${{ steps.meta.outputs.client }}
@@ -62,7 +63,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT || 22 }}
-          envs: COZE_API_TOKEN,COZE_BOT_ID,CORS_ORIGIN,APP_PORT,IMAGE_CLIENT,IMAGE_SERVER
+          envs: COZE_API_TOKEN,COZE_BOT_ID,COZE_TITLE_BOT_ID,CORS_ORIGIN,APP_PORT,IMAGE_CLIENT,IMAGE_SERVER
           script: |
             set -e
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
@@ -72,6 +73,7 @@ jobs:
             cat > .env << EOF
             COZE_API_TOKEN=$COZE_API_TOKEN
             COZE_BOT_ID=$COZE_BOT_ID
+            COZE_TITLE_BOT_ID=$COZE_TITLE_BOT_ID
             CORS_ORIGIN=$${CORS_ORIGIN:-http://localhost}
             APP_PORT=$${APP_PORT:-80}
             EOF
