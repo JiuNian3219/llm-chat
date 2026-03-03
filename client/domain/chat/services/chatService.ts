@@ -15,12 +15,10 @@ import { ChatStatus } from "@/src/types/store";
 import { message as antdMessage } from "antd";
 import { PlayEngine, type PlayEngineHandlers } from "./PlayEngine";
 
-// ─── Store 快捷引用 ───────────────────────────────────────────────────────────
+// Store 快捷引用
 const chatStore = () => useChatStore.getState();
 const convStore = () => useConversation.getState();
 const fileStore = () => useFileStore.getState();
-
-// ─── PlayEngine 工厂 ──────────────────────────────────────────────────────────
 
 /**
  * 为指定消息 ID 创建 PlayEngineHandlers，所有 Store 写入集中在此处。
@@ -42,8 +40,6 @@ function createHandlers(messageId: string): PlayEngineHandlers {
   };
 }
 
-// ─── SSE 会话清理 ─────────────────────────────────────────────────────────────
-
 /**
  * 断开当前 SSE 连接并清除 Store 中的所有 SSE 会话状态。
  * 只断连接，不通知后端——后端继续生成并落库，前端重进时会重新加载。
@@ -55,8 +51,6 @@ export function clearSSE() {
   chatStore().setCurrentChatId(null);
   chatStore().setStatus(ChatStatus.Idle);
 }
-
-// ─── 流结束后的跨域协调 ───────────────────────────────────────────────────────
 
 /**
  * SSE 正常结束后的后置操作：按需更新标题栏。
@@ -77,8 +71,6 @@ function afterStreamComplete(finishedConversationId: string | null) {
     fetchCurrentTitle(finishedConversationId);
   }
 }
-
-// ─── 标题轮询 ─────────────────────────────────────────────────────────────────
 
 /**
  * 轮询获取会话标题，直到标题就绪或超过最大尝试次数。
@@ -121,11 +113,14 @@ function pollConversationTitle(
   };
 }
 
-// ─── SSE 回调构建 ─────────────────────────────────────────────────────────────
-
 /**
  * 构建标准 SSE 回调，将服务器事件路由到 PlayEngine。
  * sendStreamMessage / loadConversationMessages 均通过此函数统一接入。
+ * 
+ * @param engine - PlayEngine 实例
+ * @param messageId - 消息 ID
+ * @param options - 选项
+ * @returns StreamChatCallbacks
  */
 function buildSSECallbacks(
   engine: PlayEngine,
@@ -214,48 +209,69 @@ function buildSSECallbacks(
 }
 
 /**
+ * 将会话数据应用到 Store（loader 和 loadConversationMessages 共用）
+ * 
+ * @param conversation - 会话数据
+ * @param conversationId - 会话 ID
+ * @returns
+ */
+export function applyConversationToStore(
+  conversation: {
+    messages?: unknown[];
+    hasMoreMessages?: boolean;
+    inProgress?: boolean;
+  } | null,
+  conversationId: string
+) {
+  clearSSE();
+  chatStore().resetMessages();
+  const serverMessages = (conversation?.messages || []) as Parameters<
+    typeof formatServerMessages
+  >[0];
+  const formatted = formatServerMessages(serverMessages);
+  chatStore().setFromServer(formatted);
+  chatStore().setMessagePagination(
+    conversation?.hasMoreMessages ?? false,
+    formatted[0]?.id ?? null
+  );
+  if (conversation?.inProgress) {
+    const aiMessage: ChatMessage = {
+      id: randomUUID(),
+      role: "assistant",
+      content: "",
+      followUps: [],
+      status: MessageStatus.Pending,
+      chatId: null,
+      conversationId,
+    };
+    chatStore().appendMessage(aiMessage);
+    chatStore().setStatus(ChatStatus.Generating);
+    const engine = new PlayEngine(aiMessage.id, createHandlers(aiMessage.id));
+    const cancelFn = server.subscribeChatByConversation(
+      conversationId,
+      buildSSECallbacks(engine, aiMessage.id, {
+        sseConversationId: conversationId,
+      }),
+    );
+    chatStore().setCancelSSE(cancelFn ?? null);
+  }
+}
+
+/**
  * 加载某会话的历史消息；若后端标记 inProgress 则订阅 SSE 续播
  * @param conversationId - 会话 ID
  */
 export async function loadConversationMessages(conversationId: string | null) {
-  // 切换会话时主动断开旧 SSE 连接（不通知后端，后端继续生成并落库）
   clearSSE();
   chatStore().resetMessages();
   chatStore().setIsLoadingMessages(true);
   try {
     if (!conversationId) return;
-    const response = await server.getConversationDetail(conversationId, { msgLimit: 10 });
+    const response = await server.getConversationDetail(conversationId, {
+      msgLimit: 10,
+    });
     const { conversation } = response.data || {};
-    const serverMessages = conversation?.messages || [];
-    const formatted = formatServerMessages(serverMessages);
-    chatStore().setFromServer(formatted);
-    chatStore().setMessagePagination(
-      conversation?.hasMoreMessages ?? false,
-      formatted[0]?.id ?? null
-    );
-
-    if (conversation?.inProgress) {
-      const aiMessage: ChatMessage = {
-        id: randomUUID(),
-        role: "assistant",
-        content: "",
-        followUps: [],
-        status: MessageStatus.Pending,
-        chatId: null,
-        conversationId,
-      };
-      chatStore().appendMessage(aiMessage);
-      chatStore().setStatus(ChatStatus.Generating);
-
-    const engine = new PlayEngine(aiMessage.id, createHandlers(aiMessage.id));
-    const cancelFn = server.subscribeChatByConversation(
-        conversationId,
-        buildSSECallbacks(engine, aiMessage.id, {
-          sseConversationId: conversationId,
-        }),
-      );
-      chatStore().setCancelSSE(cancelFn ?? null);
-    }
+    applyConversationToStore(conversation, conversationId);
   } catch (error: any) {
     chatStore().resetMessages();
     const msg = error?.message || "";

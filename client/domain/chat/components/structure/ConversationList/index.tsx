@@ -12,7 +12,7 @@ import {
 } from "antd";
 import type { CSSProperties, MouseEvent } from "react";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import styles from "./index.module.css";
 
 interface ConversationListProps {
@@ -44,10 +44,10 @@ const ConversationList = ({ style, className }: ConversationListProps) => {
     }
   }, [editingId]);
 
-  const handleConversationClick = (id: string) => {
-    // 如果点击的会话已经是当前会话，则不进行跳转
-    if (id === currentConversationId) return;
-    navigate(`/chat/${id}`, { replace: true });
+  const handleLinkClick = (e: MouseEvent<HTMLAnchorElement>, id: string) => {
+    if (id === currentConversationId) {
+      e.preventDefault();
+    }
   };
 
   const beginRename = (id: string) => {
@@ -123,10 +123,12 @@ const ConversationList = ({ style, className }: ConversationListProps) => {
     <>
       {conversations.length > 0 ? (
         conversations.map(({ conversationId, title, titleReady }) => (
-          <div
+          <Link
             key={conversationId}
+            to={`/chat/${conversationId}`}
+            replace
             className={`${styles["conversation-item"]} ${currentConversationId === conversationId ? styles["selected"] : ""}`}
-            onClick={() => handleConversationClick(conversationId)}
+            onClick={(e) => handleLinkClick(e, conversationId)}
           >
             {editingId === conversationId ? (
               <Input
@@ -181,7 +183,7 @@ const ConversationList = ({ style, className }: ConversationListProps) => {
                 onClick={(e: MouseEvent) => e.stopPropagation()}
               />
             </Dropdown>
-          </div>
+          </Link>
         ))
       ) : (
         <Flex

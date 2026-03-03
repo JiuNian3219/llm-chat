@@ -44,11 +44,13 @@ export const useConversation = create<ConversationState & ConversationActions>(
         set({ currentTitle: "", isLoadingTitle: false });
         return;
       }
+      const { currentConversationId, currentTitle } = get();
+      // 已有标题且为同一会话时不再开启骨架屏，避免流结束后的 fetch 造成闪烁
+      const isRefresh = currentConversationId === conversationId && !!currentTitle;
       try {
-        set({ isLoadingTitle: true });
+        if (!isRefresh) set({ isLoadingTitle: true });
         const { data } = await server.getConversationTitle(conversationId);
         if (data?.titleReady) {
-          // 标题已就绪，直接展示并关闭加载态
           set({ currentTitle: data.title || "新对话", isLoadingTitle: false });
         }
         // titleReady=false 时保持 isLoadingTitle=true，由 pollConversationTitle

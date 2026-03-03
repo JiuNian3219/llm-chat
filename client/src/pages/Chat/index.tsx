@@ -14,7 +14,7 @@ import { ChatStatus } from "@/src/types/store";
 import { ArrowDownOutlined } from "@ant-design/icons";
 import { Flex, Spin, theme } from "antd";
 import { useCallback, useEffect, useRef } from "react";
-import { useLocation, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import styles from "./index.module.css";
 
 const Chat = () => {
@@ -31,6 +31,7 @@ const Chat = () => {
   const fetchCurrentTitle = useConversation((s) => s.fetchCurrentTitle);
   const { conversationId } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const boxRef = useRef<HTMLElement | null>(null);
   /** 加载更多前记录的 scrollHeight，用于加载完成后恢复滚动位置 */
@@ -87,14 +88,17 @@ const Chat = () => {
 
   useEffect(() => {
     if (!conversationId) return;
-    // clearSSE 先于 setCurrentConversationId 执行，确保切换会话时两者始终同步
-    if (!location.state?.skipLoad) {
+    const skipLoad = location.state?.skipLoad === true;
+    if (skipLoad) {
+      // 消费一次后立即清除，防止刷新时 session history 中残留的 state 导致跳过加载
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+    if (!skipLoad) {
       clearSSE();
     }
     setCurrentConversationId(conversationId);
     fetchCurrentTitle(conversationId);
-    // Home 页首次发送消息后跳转时携带 skipLoad，避免覆盖正在生成的消息
-    if (!location.state?.skipLoad) {
+    if (!skipLoad) {
       loadConversationMessages(conversationId);
     }
   }, [conversationId]);
